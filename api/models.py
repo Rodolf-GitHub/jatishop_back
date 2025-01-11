@@ -7,6 +7,7 @@ import re
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
+import os
 
 class InfoNegocio(models.Model):
     nombre = models.CharField(max_length=200, unique=True)
@@ -19,6 +20,18 @@ class InfoNegocio(models.Model):
     img_portada = models.ImageField(upload_to='negocios/img_portada/', blank=True, null=True)
     favicon = models.ImageField(upload_to='negocios/favicons/', blank=True, null=True)
     activo = models.BooleanField(default=True)
+    MONEDA_PRINCIPAL_CHOICES = (
+        ('CUP', 'CUP'),
+        ('USD', 'USD'),
+        ('EUR', 'EUR'),
+        ('ZELLE', 'ZELLE'),
+        ('MLC', 'MLC'),
+    )
+    moneda_principal = models.CharField(
+        max_length=5,
+        choices=MONEDA_PRINCIPAL_CHOICES,
+        default='CUP',
+    )
     
     # Redes sociales
     whatsapp = models.URLField(blank=True, null=True)    
@@ -54,6 +67,21 @@ class InfoNegocio(models.Model):
         super().clean()
 
     def save(self, *args, **kwargs):
+        # Guardar las imágenes antiguas antes de actualizar
+        try:
+            old_instance = InfoNegocio.objects.get(pk=self.pk)
+            if old_instance.logo and self.logo != old_instance.logo:
+                if os.path.isfile(old_instance.logo.path):
+                    os.remove(old_instance.logo.path)
+            if old_instance.img_portada and self.img_portada != old_instance.img_portada:
+                if os.path.isfile(old_instance.img_portada.path):
+                    os.remove(old_instance.img_portada.path)
+            if old_instance.favicon and self.favicon != old_instance.favicon:
+                if os.path.isfile(old_instance.favicon.path):
+                    os.remove(old_instance.favicon.path)
+        except InfoNegocio.DoesNotExist:
+            pass
+
         # Convertir comas a puntos antes de guardar
         if self.latitud:
             self.latitud = str(self.latitud).replace(',', '.')
@@ -63,6 +91,19 @@ class InfoNegocio(models.Model):
         if not self.slug:
             self.slug = slugify(self.nombre)
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Eliminar archivos de imagen al eliminar el objeto
+        if self.logo:
+            if os.path.isfile(self.logo.path):
+                os.remove(self.logo.path)
+        if self.img_portada:
+            if os.path.isfile(self.img_portada.path):
+                os.remove(self.img_portada.path)
+        if self.favicon:
+            if os.path.isfile(self.favicon.path):
+                os.remove(self.favicon.path)
+        super().delete(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Negocio'
@@ -94,6 +135,22 @@ class Categoria(models.Model):
     def __str__(self):
         return f"{self.negocio.nombre} - {self.nombre}"
 
+    def save(self, *args, **kwargs):
+        try:
+            old_instance = Categoria.objects.get(pk=self.pk)
+            if old_instance.imagen and self.imagen != old_instance.imagen:
+                if os.path.isfile(old_instance.imagen.path):
+                    os.remove(old_instance.imagen.path)
+        except Categoria.DoesNotExist:
+            pass
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.imagen:
+            if os.path.isfile(self.imagen.path):
+                os.remove(self.imagen.path)
+        super().delete(*args, **kwargs)
+
 class Subcategoria(models.Model):
     nombre = models.CharField(max_length=100)
     categoria = models.ForeignKey(
@@ -113,6 +170,22 @@ class Subcategoria(models.Model):
 
     def __str__(self):
         return f"{self.categoria.nombre} - {self.nombre}"
+
+    def save(self, *args, **kwargs):
+        try:
+            old_instance = Subcategoria.objects.get(pk=self.pk)
+            if old_instance.imagen and self.imagen != old_instance.imagen:
+                if os.path.isfile(old_instance.imagen.path):
+                    os.remove(old_instance.imagen.path)
+        except Subcategoria.DoesNotExist:
+            pass
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.imagen:
+            if os.path.isfile(self.imagen.path):
+                os.remove(self.imagen.path)
+        super().delete(*args, **kwargs)
 
 class Producto(models.Model):
     nombre = models.CharField(max_length=200,unique=True)
@@ -156,6 +229,14 @@ class Producto(models.Model):
         return self.precio
 
     def save(self, *args, **kwargs):
+        try:
+            old_instance = Producto.objects.get(pk=self.pk)
+            if old_instance.imagen and self.imagen != old_instance.imagen:
+                if os.path.isfile(old_instance.imagen.path):
+                    os.remove(old_instance.imagen.path)
+        except Producto.DoesNotExist:
+            pass
+
         # Redimensionar imagen si es necesario
         if self.imagen:
             img = Image.open(self.imagen)
@@ -174,6 +255,12 @@ class Producto(models.Model):
             self.imagen.save(self.imagen.name, ContentFile(img_io.getvalue()), save=False)
 
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.imagen:
+            if os.path.isfile(self.imagen.path):
+                os.remove(self.imagen.path)
+        super().delete(*args, **kwargs)
 
 class TiendaTema(models.Model):
     negocio = models.OneToOneField(
