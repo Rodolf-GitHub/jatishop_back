@@ -248,7 +248,7 @@ class Producto(models.Model):
                 img.save(img_io, format=img_format, quality=85)  # Ajusta la calidad según sea necesario
                 img_size = img_io.getbuffer().nbytes
                 
-                if img_size <= 5 * 1024:  # 5 KB
+                if img_size <= 20 * 1024:  # 20 KB
                     break
                 img = img.resize((int(img.width * 0.9), int(img.height * 0.9)))  # Reducir tamaño
 
