@@ -1,7 +1,8 @@
 from rest_framework import viewsets, mixins
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
+from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from .models import InfoNegocio, Categoria, Subcategoria, Producto
 from .serializers import (
@@ -11,6 +12,8 @@ from .serializers import (
     ProductoSerializer
 )
 from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
+from .ubicaciones_cuba import PROVINCIAS, get_municipios as get_municipios_cuba
 
 class ProductPagination(PageNumberPagination):
     page_size = 10
@@ -18,9 +21,30 @@ class ProductPagination(PageNumberPagination):
     max_page_size = 100
 
 class InfoNegocioViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = InfoNegocio.objects.filter(activo=True)
     serializer_class = InfoNegocioSerializer
     lookup_field = 'slug'
+
+    def get_queryset(self):
+        queryset = InfoNegocio.objects.filter(activo=True)
+
+        # Filtros de ubicación
+        provincia = self.request.query_params.get('provincia')
+        municipio = self.request.query_params.get('municipio')
+        
+        if provincia:
+            queryset = queryset.filter(provincia=provincia)
+            if municipio:
+                queryset = queryset.filter(municipio=municipio)
+
+        # Mantener búsqueda existente
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(nombre__icontains=search) |
+                Q(descripcion__icontains=search)
+            )
+
+        return queryset
 
     def get_object(self):
         """
@@ -29,10 +53,8 @@ class InfoNegocioViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = self.get_queryset()
         negocio_slug = self.kwargs.get('negocio_slug')
         if negocio_slug is None:
-            # Si no hay negocio_slug, usar el comportamiento normal
             return super().get_object()
         
-        # Filtrar por el slug del negocio
         obj = get_object_or_404(queryset, slug=negocio_slug)
         self.check_object_permissions(self.request, obj)
         return obj
@@ -41,6 +63,32 @@ class InfoNegocioViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'retrieve':
             return NegocioDetalleSerializer
         return InfoNegocioSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            negocios = serializer.data
+            # Agregar información de ubicación explícita
+            for negocio in negocios:
+                obj = queryset.get(id=negocio['id'])
+                negocio['ubicacion'] = {
+                    'provincia': obj.provincia,
+                    'municipio': obj.municipio
+                }
+            return self.get_paginated_response(negocios)
+
+        serializer = self.get_serializer(queryset, many=True)
+        negocios = serializer.data
+        for negocio in negocios:
+            obj = queryset.get(id=negocio['id'])
+            negocio['ubicacion'] = {
+                'provincia': obj.provincia,
+                'municipio': obj.municipio
+            }
+        return Response(negocios)
 
 class BaseNegocioViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
@@ -221,16 +269,54 @@ class MarketplaceProductoViewSet(mixins.ListModelMixin,
     pagination_class = ProductPagination
     
     def get_queryset(self):
-        return Producto.objects.filter(
+        queryset = Producto.objects.filter(
             activo=True,
             subcategoria__categoria__negocio__activo=True
         ).select_related(
             'subcategoria__categoria__negocio'
         ).order_by('-created_at')
+
+        # Filtros de ubicación
+        provincia = self.request.query_params.get('provincia')
+        municipio = self.request.query_params.get('municipio')
+        
+        if provincia:
+            queryset = queryset.filter(
+                subcategoria__categoria__negocio__provincia=provincia
+            )
+            if municipio:
+                queryset = queryset.filter(
+                    subcategoria__categoria__negocio__municipio=municipio
+                )
+
+        # Mantener filtros existentes
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(nombre__icontains=search)
+
+        categoria_id = self.request.query_params.get('categoria_id')
+        if categoria_id:
+            queryset = queryset.filter(subcategoria__categoria_id=categoria_id)
+
+        subcategoria_id = self.request.query_params.get('subcategoria_id')
+        if subcategoria_id:
+            queryset = queryset.filter(subcategoria_id=subcategoria_id)
+
+        # Ordenamiento
+        orden = self.request.query_params.get('orden', '')
+        if orden == 'precio_asc':
+            queryset = queryset.order_by('precio')
+        elif orden == 'precio_desc':
+            queryset = queryset.order_by('-precio')
+        elif orden == 'nuevos':
+            queryset = queryset.order_by('-created_at')
+
+        return queryset
     
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         page = self.paginate_queryset(queryset)
+        
         if page is not None:
             productos = self.get_serializer(page, many=True).data
             
@@ -240,7 +326,9 @@ class MarketplaceProductoViewSet(mixins.ListModelMixin,
                 producto['tienda'] = {
                     'id': negocio.id,
                     'nombre': negocio.nombre,
-                    'slug': negocio.slug
+                    'slug': negocio.slug,
+                    'provincia': negocio.provincia,
+                    'municipio': negocio.municipio
                 }
             return self.get_paginated_response(productos)
 
@@ -250,6 +338,31 @@ class MarketplaceProductoViewSet(mixins.ListModelMixin,
             producto['tienda'] = {
                 'id': negocio.id,
                 'nombre': negocio.nombre,
-                'slug': negocio.slug
+                'slug': negocio.slug,
+                'provincia': negocio.provincia,
+                'municipio': negocio.municipio
             }
         return Response(productos)
+
+def home_view(request):
+    return render(request, 'api/home.html')
+
+@api_view(['GET'])
+def get_provincias(request):
+    """
+    Retorna la lista de todas las provincias de Cuba.
+    """
+    return Response(PROVINCIAS)
+
+@api_view(['GET'])
+def get_municipios(request, provincia):
+    """
+    Retorna la lista de municipios de una provincia específica.
+    """
+    municipios = get_municipios_cuba(provincia)
+    if not municipios:
+        return Response(
+            {'error': f'No se encontraron municipios para la provincia {provincia}'}, 
+            status=404
+        )
+    return Response(municipios)

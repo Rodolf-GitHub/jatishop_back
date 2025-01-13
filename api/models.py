@@ -8,6 +8,8 @@ from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
 import os
+from .ubicaciones_cuba import PROVINCIAS, get_municipios
+from django.core.exceptions import ValidationError
 
 class InfoNegocio(models.Model):
     nombre = models.CharField(max_length=200, unique=True)
@@ -56,6 +58,19 @@ class InfoNegocio(models.Model):
         help_text="Ejemplo: -82.123456 o -82,123456"
     )
     
+    provincia = models.CharField(
+        max_length=50,
+        choices=[(p, p) for p in PROVINCIAS],
+        verbose_name='Provincia',
+        default='Sancti Spíritus'
+    )
+    
+    municipio = models.CharField(
+        max_length=50,
+        verbose_name='Municipio',
+        default='Jatibonico'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -67,6 +82,13 @@ class InfoNegocio(models.Model):
             self.longitud = str(self.longitud).replace('.', ',')
         
         super().clean()
+        # Validar que el municipio pertenezca a la provincia
+        if self.provincia and self.municipio:
+            municipios_validos = get_municipios(self.provincia)
+            if self.municipio not in municipios_validos:
+                raise ValidationError({
+                    'municipio': f'El municipio {self.municipio} no pertenece a la provincia {self.provincia}'
+                })
 
     def save(self, *args, **kwargs):
         # Guardar las imágenes antiguas antes de actualizar

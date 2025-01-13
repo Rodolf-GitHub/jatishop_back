@@ -2,17 +2,11 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from .views import (
-    InfoNegocioViewSet,
-    CategoriaViewSet,
-    SubcategoriaViewSet,
-    ProductoViewSet,
-    MarketplaceProductoViewSet
-)
+from .views import *
 
 # Router para el marketplace
 marketplace_router = DefaultRouter()
-marketplace_router.register(r'negocios', InfoNegocioViewSet)
+marketplace_router.register(r'negocios', InfoNegocioViewSet, basename='marketplace-negocios')
 marketplace_router.register(r'productos', MarketplaceProductoViewSet, basename='marketplace-productos')
 
 @api_view(['GET'])
@@ -29,8 +23,15 @@ def api_root(request):
     })
 
 urlpatterns = [
+    # Vista principal
+    path('', home_view, name='home'),
+    
     # Vista raíz de la API
-    path('', api_root, name='api-root'),
+    path('api/', api_root, name='api-root'),
+
+    # URLs de ubicaciones
+    path('ubicaciones/provincias/', get_provincias, name='provincias'),
+    path('ubicaciones/municipios/<str:provincia>/', get_municipios, name='municipios'),
 
     # URLs del marketplace
     path('marketplace/', include(marketplace_router.urls)),
