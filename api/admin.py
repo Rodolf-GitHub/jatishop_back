@@ -23,7 +23,7 @@ class TiendaTemaInline(admin.StackedInline):
 @admin.register(InfoNegocio)
 class InfoNegocioAdmin(admin.ModelAdmin):
     list_display = ['nombre', 'mostrar_logo', 'mostrar_colores', 'slug', 'activo']
-    list_filter = ['activo']
+    list_filter = ['activo', 'hace_domicilio', 'acepta_transferencia']
     search_fields = ['nombre']
     readonly_fields = ['slug']
     inlines = [TiendaTemaInline]
@@ -40,6 +40,9 @@ class InfoNegocioAdmin(admin.ModelAdmin):
         }),
         ('Imágenes', {
             'fields': ('logo', 'img_portada', 'favicon')
+        }),
+        ('Opciones de Negocio', {
+            'fields': ('hace_domicilio', 'acepta_transferencia', 'moneda_principal')
         }),
     )
 
