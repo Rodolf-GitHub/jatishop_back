@@ -20,6 +20,8 @@ class InfoNegocio(models.Model):
     img_portada = models.ImageField(upload_to='negocios/img_portada/', blank=True, null=True)
     favicon = models.ImageField(upload_to='negocios/favicons/', blank=True, null=True)
     activo = models.BooleanField(default=True)
+    hace_domicilio = models.BooleanField(default=False)
+    acepta_transferencia = models.BooleanField(default=False)
     MONEDA_PRINCIPAL_CHOICES = (
         ('CUP', 'CUP'),
         ('USD', 'USD'),
