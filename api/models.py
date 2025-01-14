@@ -14,13 +14,12 @@ from django.core.exceptions import ValidationError
 class InfoNegocio(models.Model):
     nombre = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(unique=True, editable=False)  # No editable, se genera automáticamente
-    descripcion = models.TextField()
-    direccion = models.CharField(max_length=255)
-    telefono = models.CharField(max_length=20)
-    email = models.EmailField()
-    logo = models.ImageField(upload_to='negocios/logos/', blank=True, null=True)
-    img_portada = models.ImageField(upload_to='negocios/img_portada/', blank=True, null=True)
-    favicon = models.ImageField(upload_to='negocios/favicons/', blank=True, null=True)
+    descripcion = models.TextField(blank=True, null=True, default="Este negocio aún no tiene descripción")
+    direccion = models.CharField(max_length=255, blank=True, null=True, default="Este negocio aún no ha configurado su dirección")
+    telefono = models.CharField(max_length=20, blank=True, null=True, default="Sin teléfono")
+    email = models.EmailField(blank=True, null=True)
+    logo = models.ImageField(upload_to='negocios/logos/', blank=True, null=True, default='default/default_logo.jpg')
+    img_portada = models.ImageField(upload_to='negocios/img_portada/', blank=True, null=True, default='default/default_portada.jpg')
     activo = models.BooleanField(default=True)
     hace_domicilio = models.BooleanField(default=False)
     acepta_transferencia = models.BooleanField(default=False)
@@ -35,12 +34,14 @@ class InfoNegocio(models.Model):
         max_length=5,
         choices=MONEDA_PRINCIPAL_CHOICES,
         default='CUP',
+        blank=True,
+        null=True
     )
     
     # Redes sociales
     whatsapp = models.URLField(blank=True, null=True)    
     # Horario
-    horario = models.TextField(help_text="Horario de atención")
+    horario = models.TextField(blank=True, null=True, default="Este negocio aún no ha configurado su horario", help_text="Horario de atención")
     
     # Ubicación
     latitud = models.DecimalField(
@@ -62,13 +63,17 @@ class InfoNegocio(models.Model):
         max_length=50,
         choices=[(p, p) for p in PROVINCIAS],
         verbose_name='Provincia',
-        default='Sancti Spíritus'
+        default='Sancti Spíritus',
+        blank=True,
+        null=True
     )
     
     municipio = models.CharField(
         max_length=50,
         verbose_name='Municipio',
-        default='Jatibonico'
+        default='Jatibonico',
+        blank=True,
+        null=True
     )
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -227,7 +232,7 @@ class Producto(models.Model):
             MaxValueValidator(99)
         ]
     )
-    imagen = models.ImageField(upload_to='productos/', blank=True, null=True)
+    imagen = models.ImageField(upload_to='productos/', blank=True, null=True, default='default/default_producto.jfif')
     subcategoria = models.ForeignKey(
         Subcategoria,
         on_delete=models.CASCADE,

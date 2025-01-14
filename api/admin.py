@@ -39,7 +39,7 @@ class InfoNegocioAdmin(admin.ModelAdmin):
             'description': 'Ingrese las coordenadas usando punto (.) o coma (,) como separador decimal'
         }),
         ('Imágenes', {
-            'fields': ('logo', 'img_portada', 'favicon')
+            'fields': ('logo', 'img_portada')
         }),
         ('Opciones de Negocio', {
             'fields': ('hace_domicilio', 'acepta_transferencia', 'moneda_principal')
