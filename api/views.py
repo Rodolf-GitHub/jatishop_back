@@ -14,6 +14,8 @@ from .serializers import (
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
 from .ubicaciones_cuba import PROVINCIAS, get_municipios as get_municipios_cuba
+from urllib.parse import urlencode
+from collections import OrderedDict
 
 class ProductPagination(PageNumberPagination):
     page_size = 10
@@ -261,10 +263,6 @@ class ProductoViewSet(BaseNegocioViewSet):
 class MarketplaceProductoViewSet(mixins.ListModelMixin,
                                mixins.RetrieveModelMixin,
                                GenericViewSet):
-    """
-    ViewSet para listar productos en el marketplace.
-    Solo permite operaciones de lectura (list y retrieve).
-    """
     serializer_class = ProductoSerializer
     pagination_class = ProductPagination
     
@@ -276,7 +274,7 @@ class MarketplaceProductoViewSet(mixins.ListModelMixin,
             'subcategoria__categoria__negocio'
         ).order_by('-created_at')
 
-        # Filtros de ubicación
+        # Obtener y aplicar filtros en orden específico
         provincia = self.request.query_params.get('provincia')
         municipio = self.request.query_params.get('municipio')
         
@@ -289,60 +287,40 @@ class MarketplaceProductoViewSet(mixins.ListModelMixin,
                     subcategoria__categoria__negocio__municipio=municipio
                 )
 
-        # Mantener filtros existentes
-        search = self.request.query_params.get('search', '').strip()
-        if search:
-            queryset = queryset.filter(nombre__icontains=search)
-
-        categoria_id = self.request.query_params.get('categoria_id')
-        if categoria_id:
-            queryset = queryset.filter(subcategoria__categoria_id=categoria_id)
-
-        subcategoria_id = self.request.query_params.get('subcategoria_id')
-        if subcategoria_id:
-            queryset = queryset.filter(subcategoria_id=subcategoria_id)
-
-        # Ordenamiento
-        orden = self.request.query_params.get('orden', '')
-        if orden == 'precio_asc':
-            queryset = queryset.order_by('precio')
-        elif orden == 'precio_desc':
-            queryset = queryset.order_by('-precio')
-        elif orden == 'nuevos':
-            queryset = queryset.order_by('-created_at')
-
         return queryset
-    
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        page = self.paginate_queryset(queryset)
-        
-        if page is not None:
-            productos = self.get_serializer(page, many=True).data
-            
-            # Agregar información de la tienda a cada producto
-            for producto in productos:
-                negocio = queryset.get(id=producto['id']).subcategoria.categoria.negocio
-                producto['tienda'] = {
-                    'id': negocio.id,
-                    'nombre': negocio.nombre,
-                    'slug': negocio.slug,
-                    'provincia': negocio.provincia,
-                    'municipio': negocio.municipio
-                }
-            return self.get_paginated_response(productos)
 
-        productos = self.get_serializer(queryset, many=True).data
-        for producto in productos:
-            negocio = queryset.get(id=producto['id']).subcategoria.categoria.negocio
-            producto['tienda'] = {
-                'id': negocio.id,
-                'nombre': negocio.nombre,
-                'slug': negocio.slug,
-                'provincia': negocio.provincia,
-                'municipio': negocio.municipio
-            }
-        return Response(productos)
+    def get_paginated_response(self, data):
+        assert self.paginator is not None
+        
+        # Definimos el orden exacto que queremos para los parámetros
+        ordered_params = OrderedDict()
+        
+        # Primero provincia
+        if 'provincia' in self.request.query_params:
+            ordered_params['provincia'] = self.request.query_params['provincia']
+        
+        # Luego municipio
+        if 'municipio' in self.request.query_params:
+            ordered_params['municipio'] = self.request.query_params['municipio']
+        
+        # Página siempre al final
+        next_url = None
+        previous_url = None
+        
+        if self.paginator.get_next_link():
+            ordered_params['page'] = str(self.paginator.page.next_page_number())
+            next_url = f"{self.request.build_absolute_uri(self.request.path)}?{urlencode(ordered_params)}"
+            
+        if self.paginator.get_previous_link():
+            ordered_params['page'] = str(self.paginator.page.previous_page_number())
+            previous_url = f"{self.request.build_absolute_uri(self.request.path)}?{urlencode(ordered_params)}"
+
+        return Response(OrderedDict([
+            ('count', self.paginator.page.paginator.count),
+            ('next', next_url),
+            ('previous', previous_url),
+            ('results', data)
+        ]))
 
 def home_view(request):
     return render(request, 'api/home.html')
