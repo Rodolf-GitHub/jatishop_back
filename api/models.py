@@ -105,9 +105,6 @@ class InfoNegocio(models.Model):
             if old_instance.img_portada and self.img_portada != old_instance.img_portada:
                 if os.path.isfile(old_instance.img_portada.path):
                     os.remove(old_instance.img_portada.path)
-            if old_instance.favicon and self.favicon != old_instance.favicon:
-                if os.path.isfile(old_instance.favicon.path):
-                    os.remove(old_instance.favicon.path)
         except InfoNegocio.DoesNotExist:
             pass
 
@@ -129,9 +126,6 @@ class InfoNegocio(models.Model):
         if self.img_portada:
             if os.path.isfile(self.img_portada.path):
                 os.remove(self.img_portada.path)
-        if self.favicon:
-            if os.path.isfile(self.favicon.path):
-                os.remove(self.favicon.path)
         super().delete(*args, **kwargs)
 
     class Meta:
