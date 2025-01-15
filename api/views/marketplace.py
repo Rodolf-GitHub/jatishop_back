@@ -1,65 +1,36 @@
-from rest_framework import mixins
-from rest_framework.viewsets import GenericViewSet
-from rest_framework.response import Response
-from collections import OrderedDict
-from urllib.parse import urlencode
+from rest_framework import viewsets, permissions
 from ..models import Producto
 from ..serializers import ProductoSerializer
-from ..pagination import ProductPagination
 
-class MarketplaceProductoViewSet(mixins.ListModelMixin,
-                               mixins.RetrieveModelMixin,
-                               GenericViewSet):
+class MarketplaceProductoViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductoSerializer
-    pagination_class = ProductPagination
     
-    def get_queryset(self):
-        queryset = Producto.objects.filter(
-            activo=True,
-            subcategoria__categoria__negocio__activo=True
-        ).select_related(
-            'subcategoria__categoria__negocio'
-        ).order_by('-created_at')
+    def get_permissions(self):
+        """
+        Permitir acceso público a list y retrieve
+        """
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
-        provincia = self.request.query_params.get('provincia')
-        municipio = self.request.query_params.get('municipio')
+    def get_queryset(self):
+        queryset = Producto.objects.filter(activo=True)
         
-        if provincia:
+        # Mantener los filtros existentes
+        negocio_slug = self.request.query_params.get('negocio', None)
+        if negocio_slug:
             queryset = queryset.filter(
-                subcategoria__categoria__negocio__provincia=provincia
+                subcategoria__categoria__negocio__slug=negocio_slug
             )
-            if municipio:
-                queryset = queryset.filter(
-                    subcategoria__categoria__negocio__municipio=municipio
-                )
+
+        categoria_id = self.request.query_params.get('categoria', None)
+        if categoria_id:
+            queryset = queryset.filter(subcategoria__categoria_id=categoria_id)
+
+        subcategoria_id = self.request.query_params.get('subcategoria', None)
+        if subcategoria_id:
+            queryset = queryset.filter(subcategoria_id=subcategoria_id)
 
         return queryset
-
-    def get_paginated_response(self, data):
-        assert self.paginator is not None
-        
-        ordered_params = OrderedDict()
-        
-        if 'provincia' in self.request.query_params:
-            ordered_params['provincia'] = self.request.query_params['provincia']
-        
-        if 'municipio' in self.request.query_params:
-            ordered_params['municipio'] = self.request.query_params['municipio']
-        
-        next_url = None
-        previous_url = None
-        
-        if self.paginator.get_next_link():
-            ordered_params['page'] = str(self.paginator.page.next_page_number())
-            next_url = f"{self.request.build_absolute_uri(self.request.path)}?{urlencode(ordered_params)}"
-            
-        if self.paginator.get_previous_link():
-            ordered_params['page'] = str(self.paginator.page.previous_page_number())
-            previous_url = f"{self.request.build_absolute_uri(self.request.path)}?{urlencode(ordered_params)}"
-
-        return Response(OrderedDict([
-            ('count', self.paginator.page.paginator.count),
-            ('next', next_url),
-            ('previous', previous_url),
-            ('results', data)
-        ]))
