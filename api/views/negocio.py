@@ -10,7 +10,13 @@ from ..permissions import IsNegocioOwnerOrReadOnly
 class InfoNegocioViewSet(viewsets.ModelViewSet):
     serializer_class = InfoNegocioSerializer
     lookup_field = 'slug'
-    permission_classes = [IsNegocioOwnerOrReadOnly]
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [IsNegocioOwnerOrReadOnly]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         queryset = InfoNegocio.objects.filter(activo=True)
