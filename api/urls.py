@@ -2,7 +2,20 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from .views import *
+# Importar las vistas directamente desde sus módulos
+from .views.negocio import InfoNegocioViewSet
+from .views.producto import ProductoViewSet
+from .views.categoria import CategoriaViewSet, SubcategoriaViewSet
+from .views.marketplace import MarketplaceProductoViewSet
+from .views.ubicacion import get_provincias, get_municipios
+from .views.auth import CustomAuthToken, logout
+
+# Vista home simple
+@api_view(['GET'])
+def home_view(request):
+    return Response({
+        'message': 'Bienvenido a la API de JatiShop'
+    })
 
 # Router para el marketplace
 marketplace_router = DefaultRouter()
@@ -39,7 +52,10 @@ urlpatterns = [
     # URLs específicas de cada tienda
     path('tienda/<slug:slug>/', include([
         path('', InfoNegocioViewSet.as_view({
-            'get': 'retrieve'
+            'get': 'retrieve',
+            'put': 'update',
+            'patch': 'partial_update',
+            'delete': 'destroy'
         })),
         path('categorias/', CategoriaViewSet.as_view({
             'get': 'list'
@@ -57,7 +73,8 @@ urlpatterns = [
             'get': 'retrieve'
         })),
         path('productos/', ProductoViewSet.as_view({
-            'get': 'list'
+            'get': 'list',
+            'post': 'create'
         })),
         path('productos/destacados/', ProductoViewSet.as_view({
             'get': 'destacados'
@@ -69,7 +86,12 @@ urlpatterns = [
             'get': 'por_subcategoria'
         })),
         path('productos/<int:pk>/', ProductoViewSet.as_view({
-            'get': 'retrieve'
+            'get': 'retrieve',
+            'put': 'update',
+            'patch': 'partial_update',
+            'delete': 'destroy'
         })),
     ])),
+    path('auth/login/', CustomAuthToken.as_view(), name='api_token_auth'),
+    path('auth/logout/', logout, name='api_token_logout'),
 ]
