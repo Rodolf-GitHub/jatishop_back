@@ -19,8 +19,16 @@ def home_view(request):
 
 # Router para el marketplace
 marketplace_router = DefaultRouter()
-marketplace_router.register(r'negocios', InfoNegocioViewSet, basename='marketplace-negocios')
-marketplace_router.register(r'productos', MarketplaceProductoViewSet, basename='marketplace-productos')
+marketplace_router.register(
+    r'negocios', 
+    InfoNegocioViewSet,  # Usar el mismo ViewSet que ya tiene los permisos configurados
+    basename='marketplace-negocios'
+)
+marketplace_router.register(
+    r'productos', 
+    MarketplaceProductoViewSet, 
+    basename='marketplace-productos'
+)
 
 @api_view(['GET'])
 def api_root(request):
@@ -57,6 +65,16 @@ urlpatterns = [
             'patch': 'partial_update',
             'delete': 'destroy'
         })),
+        path('productos/', ProductoViewSet.as_view({
+            'get': 'list',
+            'post': 'create'
+        })),
+        path('productos/<int:pk>/', ProductoViewSet.as_view({
+            'get': 'retrieve',
+            'put': 'update',
+            'patch': 'partial_update',
+            'delete': 'destroy'
+        })),
         path('categorias/', CategoriaViewSet.as_view({
             'get': 'list'
         })),
@@ -72,10 +90,6 @@ urlpatterns = [
         path('subcategorias/<int:pk>/', SubcategoriaViewSet.as_view({
             'get': 'retrieve'
         })),
-        path('productos/', ProductoViewSet.as_view({
-            'get': 'list',
-            'post': 'create'
-        })),
         path('productos/destacados/', ProductoViewSet.as_view({
             'get': 'destacados'
         })),
@@ -84,12 +98,6 @@ urlpatterns = [
         })),
         path('productos/subcategoria/', ProductoViewSet.as_view({
             'get': 'por_subcategoria'
-        })),
-        path('productos/<int:pk>/', ProductoViewSet.as_view({
-            'get': 'retrieve',
-            'put': 'update',
-            'patch': 'partial_update',
-            'delete': 'destroy'
         })),
     ])),
     path('auth/login/', CustomAuthToken.as_view(), name='api_token_auth'),

@@ -19,19 +19,12 @@ class IsNegocioOwnerOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        # Obtener el negocio asociado al objeto
-        if hasattr(obj, 'negocio'):
-            negocio = obj.negocio
-        elif hasattr(obj, 'categoria'):
-            negocio = obj.categoria.negocio
-        elif hasattr(obj, 'subcategoria'):
-            negocio = obj.subcategoria.categoria.negocio
-        else:
+        if not request.user.is_authenticated:
             return False
 
         # Verificar si el usuario es dueño del negocio
         try:
-            NegocioUser.objects.get(user=request.user, negocio=negocio)
+            NegocioUser.objects.get(user=request.user, negocio=obj)
             return True
         except NegocioUser.DoesNotExist:
             return False 

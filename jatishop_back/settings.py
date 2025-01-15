@@ -136,7 +136,21 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        # Removemos SessionAuthentication para forzar el uso de tokens
+        # 'rest_framework.authentication.SessionAuthentication',
     ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    # Deshabilitamos la interfaz de navegación para endpoints que requieren autenticación
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+}
+
+# También puedes agregar esto para mayor seguridad
+REST_FRAMEWORK_BROWSABLE_API = {
+    'DEFAULT_AUTHENTICATION_ENABLED': False
 }
 

@@ -136,8 +136,19 @@ class InfoNegocio(models.Model):
         return self.nombre
 
 class NegocioUser(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    negocio = models.ForeignKey(InfoNegocio, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE,
+        related_name='negocios_users'
+    )
+    negocio = models.ForeignKey(
+        InfoNegocio, 
+        on_delete=models.CASCADE,
+        related_name='usuarios'
+    )
+
+    class Meta:
+        unique_together = ['user', 'negocio']  # Evita duplicados de usuario-negocio
 
     def __str__(self):
         return f"{self.user.username} - {self.negocio.nombre}"
