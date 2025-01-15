@@ -1,6 +1,7 @@
+from rest_framework import permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from ..models import Categoria, Subcategoria
+from ..models import Categoria, Subcategoria, Producto
 from ..serializers import (
     CategoriaSerializer, CategoriaDetalleSerializer,
     SubcategoriaSerializer, SubcategoriaDetalleSerializer,
@@ -12,7 +13,16 @@ from ..permissions import IsNegocioOwnerOrReadOnly
 class CategoriaViewSet(BaseNegocioViewSet):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
-    permission_classes = [IsNegocioOwnerOrReadOnly]
+    
+    def get_permissions(self):
+        """
+        Permitir acceso público a list, retrieve y detalles
+        """
+        if self.action in ['list', 'retrieve', 'detalles']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [IsNegocioOwnerOrReadOnly]
+        return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -43,7 +53,16 @@ class CategoriaViewSet(BaseNegocioViewSet):
 class SubcategoriaViewSet(BaseNegocioViewSet):
     queryset = Subcategoria.objects.all()
     serializer_class = SubcategoriaSerializer
-    permission_classes = [IsNegocioOwnerOrReadOnly]
+    
+    def get_permissions(self):
+        """
+        Permitir acceso público a list y retrieve
+        """
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [IsNegocioOwnerOrReadOnly]
+        return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
