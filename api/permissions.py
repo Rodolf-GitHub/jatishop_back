@@ -1,54 +1,30 @@
 from rest_framework import permissions
-from .models import NegocioUser, InfoNegocio
+from .models import NegocioUser
 
 class IsNegocioOwnerOrReadOnly(permissions.BasePermission):
     """
-    Permiso personalizado para permitir solo a los dueños del negocio
-    realizar operaciones de escritura.
+    Permiso personalizado que solo permite a los dueños del negocio
+    editar sus propios objetos.
     """
     def has_permission(self, request, view):
-        # Permitir GET, HEAD u OPTIONS
+        # Permitir GET, HEAD u OPTIONS a cualquiera
         if request.method in permissions.SAFE_METHODS:
             return True
-
-        # Verificar si el usuario está autenticado
-        if not request.user or not request.user.is_authenticated:
-            return False
-
-        # Obtener el slug del negocio de la URL
-        negocio_slug = view.kwargs.get('negocio_slug')
-        if not negocio_slug:
-            return False
-
-        try:
-            # Verificar si el usuario es dueño del negocio
-            negocio = InfoNegocio.objects.get(slug=negocio_slug)
-            return NegocioUser.objects.filter(
-                user=request.user,
-                negocio=negocio
-            ).exists()
-        except InfoNegocio.DoesNotExist:
-            return False
+            
+        # Debe estar autenticado para métodos POST, PUT, DELETE
+        return request.user and request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        # Permitir GET, HEAD u OPTIONS
+        # Permitir GET, HEAD u OPTIONS a cualquiera
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        # Para objetos específicos, verificar si el usuario es dueño del negocio
-        try:
-            if hasattr(obj, 'negocio'):
-                negocio = obj.negocio
-            elif hasattr(obj, 'categoria'):
-                negocio = obj.categoria.negocio
-            elif hasattr(obj, 'subcategoria'):
-                negocio = obj.subcategoria.categoria.negocio
-            else:
-                return False
+        if not request.user.is_authenticated:
+            return False
 
-            return NegocioUser.objects.filter(
-                user=request.user,
-                negocio=negocio
-            ).exists()
-        except:
+        # Verificar si el usuario es dueño del negocio
+        try:
+            NegocioUser.objects.get(user=request.user, negocio=obj)
+            return True
+        except NegocioUser.DoesNotExist:
             return False 

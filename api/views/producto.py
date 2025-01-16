@@ -13,29 +13,18 @@ from .base import BaseNegocioViewSet
 from ..pagination import ProductPagination
 from ..permissions import IsNegocioOwnerOrReadOnly
 import logging
-from rest_framework.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
 class ProductoViewSet(BaseNegocioViewSet):
-    queryset = Producto.objects.all()
+    queryset = Producto.objects.filter(activo=True)
     serializer_class = ProductoSerializer
     pagination_class = ProductPagination
     permission_classes = [IsNegocioOwnerOrReadOnly]
 
-    def get_queryset(self):
-        negocio_slug = self.kwargs.get('negocio_slug')
-        if not negocio_slug:
-            return self.queryset.none()
-        
-        return self.queryset.filter(
-            subcategoria__categoria__negocio__slug=negocio_slug
-        )
-
     def perform_create(self, serializer):
-        subcategoria = serializer.validated_data['subcategoria']
-        if subcategoria.categoria.negocio.slug != self.kwargs.get('negocio_slug'):
-            raise ValidationError('La subcategoría no pertenece a este negocio')
+        negocio = self.get_negocio()
+        # La validación de permisos ya la hace IsNegocioOwnerOrReadOnly
         serializer.save()
 
     # Los métodos perform_update y perform_destroy ya no necesitan 
