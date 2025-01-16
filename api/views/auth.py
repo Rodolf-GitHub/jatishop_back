@@ -3,6 +3,12 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, permissions, status
+from django.contrib.auth.models import User
+from ..serializers import UserAuthSerializer
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CustomAuthToken(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
@@ -22,4 +28,33 @@ class CustomAuthToken(ObtainAuthToken):
 def logout(request):
     if hasattr(request.user, 'auth_token'):
         request.user.auth_token.delete()
-    return Response({'message': 'Sesión cerrada exitosamente'}) 
+    return Response({'message': 'Sesión cerrada exitosamente'})
+
+class UserAuthViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserAuthSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            
+            return Response({
+                'message': 'Usuario registrado exitosamente',
+                'user': UserAuthSerializer(user).data
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error en registro de usuario: {str(e)}")
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAdminUser]
+        return [permission() for permission in permission_classes] 

@@ -2,13 +2,14 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from rest_framework.authtoken.views import obtain_auth_token
 # Importar las vistas directamente desde sus módulos
 from .views.negocio import InfoNegocioViewSet
 from .views.producto import ProductoViewSet
 from .views.categoria import CategoriaViewSet, SubcategoriaViewSet
 from .views.marketplace import MarketplaceProductoViewSet
 from .views.ubicacion import get_provincias, get_municipios
-from .views.auth import CustomAuthToken, logout
+from .views.auth import CustomAuthToken, logout, UserAuthViewSet
 
 # Vista home simple
 @api_view(['GET'])
@@ -100,6 +101,7 @@ urlpatterns = [
             'get': 'por_subcategoria'
         })),
     ])),
-    path('auth/login/', CustomAuthToken.as_view(), name='api_token_auth'),
+    path('auth/login/', obtain_auth_token, name='api_token_auth'),
     path('auth/logout/', logout, name='api_token_logout'),
+    path('auth/register/', UserAuthViewSet.as_view({'post': 'create'}), name='user_register'),
 ]
