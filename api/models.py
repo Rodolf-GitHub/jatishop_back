@@ -222,7 +222,7 @@ class Subcategoria(models.Model):
         super().delete(*args, **kwargs)
 
 class Producto(models.Model):
-    nombre = models.CharField(max_length=200,unique=True)
+    nombre = models.CharField(max_length=200)
     descripcion = models.TextField()
     precio = models.DecimalField(
         max_digits=10, 
@@ -251,6 +251,27 @@ class Producto(models.Model):
         verbose_name = 'Producto'
         verbose_name_plural = 'Productos'
         ordering = ['-created_at']
+
+    def clean(self):
+        super().clean()
+        # Validar nombre único por negocio
+        if self.nombre and self.subcategoria_id:
+            negocio = self.subcategoria.categoria.negocio
+            productos_existentes = Producto.objects.filter(
+                nombre=self.nombre,
+                subcategoria__categoria__negocio=negocio
+            )
+            if self.pk:
+                productos_existentes = productos_existentes.exclude(pk=self.pk)
+            
+            if productos_existentes.exists():
+                raise ValidationError({
+                    'nombre': 'Ya existe un producto con este nombre en este negocio'
+                })
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nombre
