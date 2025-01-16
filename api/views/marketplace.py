@@ -1,9 +1,16 @@
 from rest_framework import viewsets, permissions
+from rest_framework.pagination import PageNumberPagination
 from ..models import Producto
 from ..serializers import ProductoSerializer
 
+class ProductoPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class MarketplaceProductoViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductoSerializer
+    pagination_class = ProductoPagination
     
     def get_permissions(self):
         """
@@ -33,4 +40,21 @@ class MarketplaceProductoViewSet(viewsets.ReadOnlyModelViewSet):
         if subcategoria_id:
             queryset = queryset.filter(subcategoria_id=subcategoria_id)
 
-        return queryset
+        # Filtros de provincia y municipio
+        provincia = self.request.query_params.get('provincia', None)
+        if provincia:
+            queryset = queryset.filter(
+                subcategoria__categoria__negocio__provincia__iexact=provincia
+            )
+
+        municipio = self.request.query_params.get('municipio', None)
+        if municipio:
+            queryset = queryset.filter(
+                subcategoria__categoria__negocio__municipio__iexact=municipio
+            )
+
+        return queryset.select_related(
+            'subcategoria',
+            'subcategoria__categoria',
+            'subcategoria__categoria__negocio'
+        ).order_by('-id')
