@@ -1,7 +1,8 @@
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from ..models import Categoria, Subcategoria, Producto
+from django.shortcuts import get_object_or_404
+from ..models import Categoria, Subcategoria, Producto, InfoNegocio
 from ..serializers import (
     CategoriaSerializer, CategoriaDetalleSerializer,
     SubcategoriaSerializer, SubcategoriaDetalleSerializer,
@@ -9,7 +10,6 @@ from ..serializers import (
 )
 from .base import BaseNegocioViewSet
 from ..permissions import IsNegocioOwnerOrReadOnly
-from django.shortcuts import get_object_or_404
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 class CategoriaViewSet(BaseNegocioViewSet):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
+    permission_classes = [IsNegocioOwnerOrReadOnly]
     
     def get_permissions(self):
         """
@@ -32,6 +33,17 @@ class CategoriaViewSet(BaseNegocioViewSet):
         if self.action == 'retrieve':
             return CategoriaDetalleSerializer
         return CategoriaSerializer
+
+    def get_queryset(self):
+        negocio_slug = self.kwargs.get('negocio_slug')
+        if not negocio_slug:
+            return self.queryset.none()
+        return self.queryset.filter(negocio__slug=negocio_slug)
+
+    def perform_create(self, serializer):
+        negocio_slug = self.kwargs.get('negocio_slug')
+        negocio = get_object_or_404(InfoNegocio, slug=negocio_slug)
+        serializer.save(negocio=negocio)
 
     @action(detail=True, methods=['get'])
     def detalles(self, request, slug, pk=None):
@@ -57,7 +69,6 @@ class CategoriaViewSet(BaseNegocioViewSet):
     @action(detail=True, methods=['get'], url_path='productos/subcategoria')
     def productos_subcategoria(self, request, slug=None):
         try:
-            # Obtener y validar subcategoria_id
             subcategoria_id = request.query_params.get('subcategoria_id')
             if not subcategoria_id:
                 return Response(
@@ -65,10 +76,8 @@ class CategoriaViewSet(BaseNegocioViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Verificar que la subcategoría existe
             subcategoria = get_object_or_404(Subcategoria, id=subcategoria_id)
             
-            # Obtener productos
             productos = Producto.objects.filter(
                 subcategoria=subcategoria,
                 activo=True
@@ -77,7 +86,6 @@ class CategoriaViewSet(BaseNegocioViewSet):
                 'subcategoria__categoria'
             )
             
-            # Serializar y retornar
             serializer = ProductoSerializer(productos, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
             
@@ -96,6 +104,7 @@ class CategoriaViewSet(BaseNegocioViewSet):
 class SubcategoriaViewSet(BaseNegocioViewSet):
     queryset = Subcategoria.objects.all()
     serializer_class = SubcategoriaSerializer
+    permission_classes = [IsNegocioOwnerOrReadOnly]
     
     def get_permissions(self):
         """
@@ -111,3 +120,15 @@ class SubcategoriaViewSet(BaseNegocioViewSet):
         if self.action == 'retrieve':
             return SubcategoriaDetalleSerializer
         return SubcategoriaSerializer
+
+    def get_queryset(self):
+        negocio_slug = self.kwargs.get('negocio_slug')
+        if not negocio_slug:
+            return self.queryset.none()
+        return self.queryset.filter(categoria__negocio__slug=negocio_slug)
+
+    def perform_create(self, serializer):
+        categoria = serializer.validated_data['categoria']
+        if categoria.negocio.slug != self.kwargs.get('negocio_slug'):
+            raise ValidationError('La categoría no pertenece a este negocio')
+        serializer.save()

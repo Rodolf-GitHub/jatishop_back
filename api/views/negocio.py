@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -10,12 +10,13 @@ from ..permissions import IsNegocioOwnerOrReadOnly
 class InfoNegocioViewSet(viewsets.ModelViewSet):
     serializer_class = InfoNegocioSerializer
     lookup_field = 'slug'
+    permission_classes = [IsNegocioOwnerOrReadOnly]
     
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             permission_classes = [permissions.AllowAny]
         else:
-            permission_classes = [IsNegocioOwnerOrReadOnly]
+            permission_classes = [permissions.IsAuthenticated, IsNegocioOwnerOrReadOnly]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
@@ -87,11 +88,7 @@ class InfoNegocioViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         instance = self.get_object()
-        if instance.propietario != self.request.user:
-            raise PermissionDenied("No tienes permiso para modificar este negocio")
         serializer.save()
 
     def perform_destroy(self, instance):
-        if instance.propietario != self.request.user:
-            raise PermissionDenied("No tienes permiso para eliminar este negocio")
         instance.delete()
