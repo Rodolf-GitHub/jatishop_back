@@ -237,7 +237,17 @@ class Producto(models.Model):
             MaxValueValidator(99)
         ]
     )
-    imagen = models.ImageField(upload_to='productos/', blank=True, null=True, default='default/default_producto.jfif')
+    
+    def producto_imagen_path(instance, filename):
+        # Construye la ruta: productos/nombre_negocio/filename
+        return f'productos/{instance.subcategoria.categoria.negocio.slug}/{filename}'
+    
+    imagen = models.ImageField(
+        upload_to=producto_imagen_path,  # Usa la función personalizada
+        blank=True, 
+        null=True, 
+        default='default/default_producto.jfif'
+    )
     subcategoria = models.ForeignKey(
         Subcategoria,
         on_delete=models.CASCADE,
