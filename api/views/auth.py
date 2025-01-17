@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate
 from ..serializers import UserAuthSerializer
 import logging
 from drf_spectacular.utils import extend_schema
+from ..models import NegocioUser
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +50,24 @@ class CustomAuthToken(ObtainAuthToken):
             # Si la autenticación es exitosa, generar o recuperar el token
             token, created = Token.objects.get_or_create(user=user)
             
+            # Obtener el negocio asociado al usuario si existe
+            negocio_user = NegocioUser.objects.filter(user=user).first()
+            negocio_data = None
+            if negocio_user:
+                negocio_data = {
+                    'id': negocio_user.negocio.id,
+                    'nombre': negocio_user.negocio.nombre,
+                    'slug': negocio_user.negocio.slug
+                }
+            
             logger.info(f"Login exitoso para usuario: {user.username}")
             
             return Response({
                 'token': token.key,
                 'user_id': user.pk,
                 'email': user.email,
-                'username': user.username
+                'username': user.username,
+                'negocio': negocio_data
             })
             
         except Exception as e:
