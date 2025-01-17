@@ -2,7 +2,6 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from rest_framework.authtoken.views import obtain_auth_token
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 # Importar las vistas directamente desde sus módulos
 from .views.negocio import InfoNegocioViewSet
@@ -104,7 +103,7 @@ urlpatterns = [
             'get': 'por_subcategoria'
         })),
     ])),
-    path('auth/login/', obtain_auth_token, name='api_token_auth'),
+    path('auth/login/', CustomAuthToken.as_view(), name='api_token_auth'),
     path('auth/logout/', logout, name='api_token_logout'),
     path('auth/register/', UserAuthViewSet.as_view({'post': 'create'}), name='user_register'),
 ]

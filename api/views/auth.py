@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets, permissions, status
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 from ..serializers import UserAuthSerializer
 import logging
 from drf_spectacular.utils import extend_schema
@@ -17,35 +18,52 @@ logger = logging.getLogger(__name__)
 )
 class CustomAuthToken(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
-        # Obtener las credenciales
-        username = request.data.get('username')
-        password = request.data.get('password')
+        try:
+            # Obtener las credenciales
+            username = request.data.get('username')
+            password = request.data.get('password')
 
-        # Si parece ser un email, buscar el usuario correspondiente
-        if '@' in username:
-            try:
-                user = User.objects.get(email=username)
-                username = user.username
-            except User.DoesNotExist:
+            logger.info(f"Intento de login con: {username}")
+
+            # Si parece ser un email, buscar el usuario correspondiente
+            if '@' in username:
+                try:
+                    user = User.objects.get(email=username)
+                    username = user.username
+                    logger.info(f"Email encontrado, username correspondiente: {username}")
+                except User.DoesNotExist:
+                    logger.warning(f"No se encontró usuario con email: {username}")
+                    return Response({
+                        'error': 'No existe usuario con ese email'
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+            # Intentar autenticar al usuario
+            user = authenticate(username=username, password=password)
+            
+            if user is None:
+                logger.error(f"Autenticación fallida para usuario: {username}")
                 return Response({
-                    'error': 'No existe usuario con ese email'
-                }, status=400)
+                    'error': 'Credenciales inválidas'
+                }, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Actualizar los datos de la solicitud con el username
-        request.data['username'] = username
-
-        # Continuar con el proceso normal de autenticación
-        serializer = self.serializer_class(data=request.data,
-                                         context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        
-        return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'email': user.email
-        })
+            # Si la autenticación es exitosa, generar o recuperar el token
+            token, created = Token.objects.get_or_create(user=user)
+            
+            logger.info(f"Login exitoso para usuario: {user.username}")
+            
+            return Response({
+                'token': token.key,
+                'user_id': user.pk,
+                'email': user.email,
+                'username': user.username
+            })
+            
+        except Exception as e:
+            logger.error(f"Error inesperado en login: {str(e)}")
+            return Response({
+                'error': 'Error en el proceso de autenticación',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
