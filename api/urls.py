@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.authtoken.views import obtain_auth_token
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 # Importar las vistas directamente desde sus módulos
 from .views.negocio import InfoNegocioViewSet
 from .views.producto import ProductoViewSet
@@ -45,6 +46,11 @@ def api_root(request):
     })
 
 urlpatterns = [
+    # Documentación API
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    
     # Vista principal
     path('', home_view, name='home'),
     
@@ -90,9 +96,6 @@ urlpatterns = [
         })),
         path('subcategorias/<int:pk>/', SubcategoriaViewSet.as_view({
             'get': 'retrieve'
-        })),
-        path('productos/destacados/', ProductoViewSet.as_view({
-            'get': 'destacados'
         })),
         path('productos/categoria/', ProductoViewSet.as_view({
             'get': 'por_categoria'

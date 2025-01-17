@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'colorfield',
     'rest_framework.authtoken',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -147,6 +148,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # También puedes agregar esto para mayor seguridad
@@ -154,3 +156,16 @@ REST_FRAMEWORK_BROWSABLE_API = {
     'DEFAULT_AUTHENTICATION_ENABLED': False
 }
 
+# Configuración de Spectacular
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API E-ComCuba',
+    'DESCRIPTION': 'API para el sistema de comercio electrónico E-ComCuba',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {'name': 'tiendas', 'description': 'Operaciones relacionadas con tiendas'},
+        {'name': 'productos', 'description': 'Operaciones relacionadas con productos'},
+        {'name': 'categorias', 'description': 'Operaciones relacionadas con categorías'},
+    ],
+}
