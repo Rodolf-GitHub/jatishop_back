@@ -7,16 +7,40 @@ from rest_framework import viewsets, permissions, status
 from django.contrib.auth.models import User
 from ..serializers import UserAuthSerializer
 import logging
+from drf_spectacular.utils import extend_schema
 
 logger = logging.getLogger(__name__)
 
+@extend_schema(
+    tags=['auth'],
+    description='Obtiene token de autenticación usando email o username'
+)
 class CustomAuthToken(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
+        # Obtener las credenciales
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        # Si parece ser un email, buscar el usuario correspondiente
+        if '@' in username:
+            try:
+                user = User.objects.get(email=username)
+                username = user.username
+            except User.DoesNotExist:
+                return Response({
+                    'error': 'No existe usuario con ese email'
+                }, status=400)
+
+        # Actualizar los datos de la solicitud con el username
+        request.data['username'] = username
+
+        # Continuar con el proceso normal de autenticación
         serializer = self.serializer_class(data=request.data,
                                          context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
+        
         return Response({
             'token': token.key,
             'user_id': user.pk,
