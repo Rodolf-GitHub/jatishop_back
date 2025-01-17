@@ -6,6 +6,11 @@ from .views.producto import ProductoViewSet
 from .views.categoria import CategoriaViewSet, SubcategoriaViewSet
 from .views.marketplace import MarketplaceProductoViewSet
 from .views.ubicacion import get_provincias, get_municipios
+from .views.admin import (
+    AdminNegocioViewSet,
+    AdminCategoriaViewSet,
+    AdminProductoViewSet
+)
 
 # Vista principal
 def home_view(request):
@@ -21,4 +26,7 @@ __all__ = [
     'get_provincias',
     'get_municipios',
     'home_view',
+    'AdminNegocioViewSet',
+    'AdminCategoriaViewSet',
+    'AdminProductoViewSet',
 ]

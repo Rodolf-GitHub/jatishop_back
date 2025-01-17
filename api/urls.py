@@ -10,6 +10,7 @@ from .views.categoria import CategoriaViewSet, SubcategoriaViewSet
 from .views.marketplace import MarketplaceProductoViewSet
 from .views.ubicacion import get_provincias, get_municipios
 from .views.auth import CustomAuthToken, logout, UserAuthViewSet
+from .views.admin import AdminNegocioViewSet, AdminCategoriaViewSet, AdminProductoViewSet
 
 # Vista home simple
 @api_view(['GET'])
@@ -30,6 +31,12 @@ marketplace_router.register(
     MarketplaceProductoViewSet, 
     basename='marketplace-productos'
 )
+
+# Router para el panel de administración
+admin_router = DefaultRouter()
+admin_router.register('negocio', AdminNegocioViewSet, basename='admin-negocio')
+admin_router.register('categorias', AdminCategoriaViewSet, basename='admin-categorias')
+admin_router.register('productos', AdminProductoViewSet, basename='admin-productos')
 
 @api_view(['GET'])
 def api_root(request):
@@ -106,4 +113,7 @@ urlpatterns = [
     path('auth/login/', CustomAuthToken.as_view(), name='api_token_auth'),
     path('auth/logout/', logout, name='api_token_logout'),
     path('auth/register/', UserAuthViewSet.as_view({'post': 'create'}), name='user_register'),
+
+    # URLs del panel de administración
+    path('mi-negocio/', include(admin_router.urls)),
 ]
