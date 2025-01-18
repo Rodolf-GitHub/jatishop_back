@@ -16,6 +16,31 @@ class AdminNegocioViewSet(viewsets.ViewSet):
         except NegocioUser.DoesNotExist:
             return None
 
+    @action(detail=False, methods=['post'])
+    def create_business(self, request):
+        """Crear un nuevo negocio para el usuario autenticado"""
+        # Verificar si el usuario ya tiene un negocio
+        if self.get_negocio(request.user):
+            return Response(
+                {'error': 'Ya tienes un negocio asociado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = InfoNegocioSerializer(data=request.data)
+        if serializer.is_valid():
+            # Crear el negocio
+            negocio = serializer.save()
+            
+            # Crear la relación NegocioUser
+            NegocioUser.objects.create(
+                user=request.user,
+                negocio=negocio,
+                es_propietario=True
+            )
+            
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=False, methods=['get', 'put', 'patch', 'delete'])
     def my_business(self, request):
         """Gestionar información del negocio del usuario autenticado"""
