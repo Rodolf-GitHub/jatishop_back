@@ -73,7 +73,7 @@ from ...serializers import CategoriaSerializer, SubcategoriaSerializer
 )
 class AdminCategoriaViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
-    
+
     def get_negocio(self, user):
         try:
             negocio_user = NegocioUser.objects.get(user=user)
@@ -145,15 +145,10 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['put', 'patch', 'delete'])
     def manage_category(self, request, pk=None):
         """Gestionar una categoría específica"""
-        negocio = self.get_negocio(request.user)
-        if not negocio:
-            return Response(
-                {'error': 'No tienes un negocio asociado'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+        negocio_user = NegocioUser.objects.get(user=request.user)
 
         try:
-            categoria = Categoria.objects.get(pk=pk, negocio=negocio)
+            categoria = Categoria.objects.get(pk=pk, negocio=negocio_user.negocio)
         except Categoria.DoesNotExist:
             return Response(
                 {'error': 'Categoría no encontrada'}, 
@@ -199,24 +194,24 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
             return Response(serializer.data)
 
         elif request.method == 'POST':
-            serializer = SubcategoriaSerializer(data=request.data)
+            # Crear un nuevo diccionario con los datos del request
+            data = request.data.copy()
+            # Añadir el ID de la categoría
+            data['categoria'] = categoria.id
+            
+            serializer = SubcategoriaSerializer(data=data)
             if serializer.is_valid():
-                serializer.save(categoria=categoria)
+                serializer.save()
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['put', 'patch', 'delete'], url_path='subcategories/(?P<subcategoria_pk>[^/.]+)')
     def manage_subcategory(self, request, pk=None, subcategoria_pk=None):
         """Gestionar una subcategoría específica"""
-        negocio = self.get_negocio(request.user)
-        if not negocio:
-            return Response(
-                {'error': 'No tienes un negocio asociado'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+        negocio_user = NegocioUser.objects.get(user=request.user)
 
         try:
-            categoria = Categoria.objects.get(pk=pk, negocio=negocio)
+            categoria = Categoria.objects.get(pk=pk, negocio=negocio_user.negocio)
             subcategoria = Subcategoria.objects.get(pk=subcategoria_pk, categoria=categoria)
         except (Categoria.DoesNotExist, Subcategoria.DoesNotExist):
             return Response(

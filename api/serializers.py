@@ -21,7 +21,7 @@ class NegocioUserSerializer(serializers.ModelSerializer):
 class CategoriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categoria
-        fields = '__all__'
+        exclude = ('negocio',)
 
 class SubcategoriaSerializer(serializers.ModelSerializer):
     class Meta:
