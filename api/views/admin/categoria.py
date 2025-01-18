@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
-from ...models import Categoria, NegocioUser
-from ...serializers import CategoriaSerializer
+from ...models import Categoria, NegocioUser, Subcategoria
+from ...serializers import CategoriaSerializer, SubcategoriaSerializer
 
 @extend_schema_view(
     my_categories=extend_schema(
@@ -31,6 +31,37 @@ from ...serializers import CategoriaSerializer
         request=CategoriaSerializer,
         responses={
             200: CategoriaSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    ),
+    subcategories=extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar subcategorías de una categoría',
+        methods=['GET', 'POST'],
+        request=SubcategoriaSerializer,
+        responses={
+            200: SubcategoriaSerializer(many=True),
+            201: SubcategoriaSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    ),
+    manage_subcategory=extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar una subcategoría específica',
+        methods=['PUT', 'PATCH', 'DELETE'],
+        request=SubcategoriaSerializer,
+        responses={
+            200: SubcategoriaSerializer,
             404: {
                 'type': 'object',
                 'properties': {
@@ -95,7 +126,14 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
         if request.method == 'GET':
             categorias = Categoria.objects.filter(negocio=negocio)
             serializer = CategoriaSerializer(categorias, many=True)
-            return Response(serializer.data)
+            data = serializer.data
+            
+            # Añadir subcategorías a cada categoría
+            for categoria in data:
+                subcategorias = Subcategoria.objects.filter(categoria_id=categoria['id'])
+                categoria['subcategorias'] = SubcategoriaSerializer(subcategorias, many=True).data
+                
+            return Response(data)
             
         elif request.method == 'POST':
             serializer = CategoriaSerializer(data=request.data)
@@ -135,4 +173,68 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
             
         elif request.method == 'DELETE':
             categoria.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT) 
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['get', 'post'])
+    def subcategories(self, request, pk=None):
+        """Gestionar subcategorías de una categoría"""
+        negocio = self.get_negocio(request.user)
+        if not negocio:
+            return Response(
+                {'error': 'No tienes un negocio asociado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            categoria = Categoria.objects.get(pk=pk, negocio=negocio)
+        except Categoria.DoesNotExist:
+            return Response(
+                {'error': 'Categoría no encontrada'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if request.method == 'GET':
+            subcategorias = Subcategoria.objects.filter(categoria=categoria)
+            serializer = SubcategoriaSerializer(subcategorias, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            serializer = SubcategoriaSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(categoria=categoria)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['put', 'patch', 'delete'], url_path='subcategories/(?P<subcategoria_pk>[^/.]+)')
+    def manage_subcategory(self, request, pk=None, subcategoria_pk=None):
+        """Gestionar una subcategoría específica"""
+        negocio = self.get_negocio(request.user)
+        if not negocio:
+            return Response(
+                {'error': 'No tienes un negocio asociado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            categoria = Categoria.objects.get(pk=pk, negocio=negocio)
+            subcategoria = Subcategoria.objects.get(pk=subcategoria_pk, categoria=categoria)
+        except (Categoria.DoesNotExist, Subcategoria.DoesNotExist):
+            return Response(
+                {'error': 'Categoría o subcategoría no encontrada'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if request.method in ['PUT', 'PATCH']:
+            serializer = SubcategoriaSerializer(
+                subcategoria,
+                data=request.data,
+                partial=request.method=='PATCH'
+            )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == 'DELETE':
+            subcategoria.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
