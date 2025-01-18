@@ -3,10 +3,43 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from ...models import Categoria, NegocioUser
 from ...serializers import CategoriaSerializer
 
+@extend_schema_view(
+    my_categories=extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar categorías de mi negocio',
+        methods=['GET', 'POST'],
+        request=CategoriaSerializer,
+        responses={
+            200: CategoriaSerializer(many=True),
+            201: CategoriaSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    ),
+    manage_category=extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar una categoría específica',
+        methods=['PUT', 'PATCH', 'DELETE'],
+        request=CategoriaSerializer,
+        responses={
+            200: CategoriaSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    )
+)
 class AdminCategoriaViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     

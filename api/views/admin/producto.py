@@ -3,10 +3,43 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from ...models import Producto, NegocioUser
 from ...serializers import ProductoSerializer
 
+@extend_schema_view(
+    my_products=extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar productos de mi negocio',
+        methods=['GET', 'POST'],
+        request=ProductoSerializer,
+        responses={
+            200: ProductoSerializer(many=True),
+            201: ProductoSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    ),
+    manage_product=extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar un producto específico',
+        methods=['PUT', 'PATCH', 'DELETE'],
+        request=ProductoSerializer,
+        responses={
+            200: ProductoSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    )
+)
 class AdminProductoViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     

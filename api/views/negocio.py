@@ -21,12 +21,30 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
     retrieve=extend_schema(
         tags=['tiendas'],
         description='Obtener detalles de una tienda específica'
+    ),
+    create=extend_schema(
+        tags=['tiendas'],
+        description='Crear una nueva tienda'
+    ),
+    update=extend_schema(
+        tags=['tiendas'],
+        description='Actualizar una tienda existente'
+    ),
+    destroy=extend_schema(
+        tags=['tiendas'],
+        description='Eliminar una tienda'
     )
 )
-class InfoNegocioViewSet(viewsets.ReadOnlyModelViewSet):
+class InfoNegocioViewSet(viewsets.ModelViewSet):
     serializer_class = InfoNegocioSerializer
     lookup_field = 'slug'
-    permission_classes = [permissions.AllowAny]
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [IsNegocioOwnerOrReadOnly]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         queryset = InfoNegocio.objects.filter(activo=True)
@@ -87,3 +105,21 @@ class InfoNegocioViewSet(viewsets.ReadOnlyModelViewSet):
                 'municipio': obj.municipio
             }
         return Response(negocios)
+
+    def perform_create(self, serializer):
+        negocio = serializer.save()
+        NegocioUser.objects.create(
+            user=self.request.user,
+            negocio=negocio
+        )
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        if instance.propietario != self.request.user:
+            raise PermissionDenied("No tienes permiso para modificar este negocio")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.propietario != self.request.user:
+            raise PermissionDenied("No tienes permiso para eliminar este negocio")
+        instance.delete()

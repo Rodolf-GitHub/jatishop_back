@@ -3,10 +3,41 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
-from ...models import InfoNegocio, NegocioUser
-from ...serializers import InfoNegocioSerializer
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
+from ...models import InfoNegocio, NegocioUser, TiendaTema
+from ...serializers import InfoNegocioSerializer, TiendaTemaSerializer
 
+@extend_schema_view(
+    create_business=extend_schema(
+        tags=['mi-negocio'],
+        description='Crear un nuevo negocio',
+        request=InfoNegocioSerializer,
+        responses={
+            201: InfoNegocioSerializer,
+            400: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    ),
+    my_business=extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar mi negocio',
+        methods=['GET', 'PUT', 'PATCH', 'DELETE'],
+        request=InfoNegocioSerializer,
+        responses={
+            200: InfoNegocioSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    )
+)
 class AdminNegocioViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     
@@ -61,6 +92,8 @@ class AdminNegocioViewSet(viewsets.ViewSet):
                 negocio=negocio,
                 es_propietario=True
             )
+            # Crear tema por defecto
+            TiendaTema.objects.create(negocio=negocio)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -101,7 +134,11 @@ class AdminNegocioViewSet(viewsets.ViewSet):
 
         if request.method == 'GET':
             serializer = InfoNegocioSerializer(negocio)
-            return Response(serializer.data)
+            tema = TiendaTema.objects.get_or_create(negocio=negocio)[0]
+            tema_serializer = TiendaTemaSerializer(tema)
+            data = serializer.data
+            data['tema'] = tema_serializer.data
+            return Response(data)
             
         elif request.method in ['PUT', 'PATCH']:
             serializer = InfoNegocioSerializer(
@@ -110,7 +147,23 @@ class AdminNegocioViewSet(viewsets.ViewSet):
                 partial=request.method=='PATCH'
             )
             if serializer.is_valid():
-                serializer.save()
+                negocio = serializer.save()
+                
+                # Actualizar tema si se proporciona
+                if 'tema' in request.data:
+                    tema = TiendaTema.objects.get_or_create(negocio=negocio)[0]
+                    tema_serializer = TiendaTemaSerializer(
+                        tema,
+                        data=request.data['tema'],
+                        partial=True
+                    )
+                    if tema_serializer.is_valid():
+                        tema_serializer.save()
+                        data = serializer.data
+                        data['tema'] = tema_serializer.data
+                        return Response(data)
+                    return Response(tema_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
