@@ -1,5 +1,6 @@
 from rest_framework import viewsets, permissions
 from rest_framework.pagination import PageNumberPagination
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from ..models import Producto
 from ..serializers import ProductoSerializer
 
@@ -8,6 +9,22 @@ class ProductoPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=['marketplace'],
+        description='Listar todos los productos del marketplace',
+        parameters=[
+            {'name': 'provincia', 'type': str, 'description': 'Filtrar por provincia'},
+            {'name': 'municipio', 'type': str, 'description': 'Filtrar por municipio'},
+            {'name': 'categoria', 'type': int, 'description': 'Filtrar por categoría'},
+            {'name': 'subcategoria', 'type': int, 'description': 'Filtrar por subcategoría'},
+        ]
+    ),
+    retrieve=extend_schema(
+        tags=['marketplace'],
+        description='Obtener detalles de un producto específico'
+    )
+)
 class MarketplaceProductoViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductoSerializer
     pagination_class = ProductoPagination

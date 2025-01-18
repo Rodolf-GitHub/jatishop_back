@@ -73,20 +73,13 @@ urlpatterns = [
     # URLs específicas de cada tienda
     path('tienda/<slug:slug>/', include([
         path('', InfoNegocioViewSet.as_view({
-            'get': 'retrieve',
-            'put': 'update',
-            'patch': 'partial_update',
-            'delete': 'destroy'
+            'get': 'retrieve'
         })),
         path('productos/', ProductoViewSet.as_view({
-            'get': 'list',
-            'post': 'create'
+            'get': 'list'
         })),
         path('productos/<int:pk>/', ProductoViewSet.as_view({
-            'get': 'retrieve',
-            'put': 'update',
-            'patch': 'partial_update',
-            'delete': 'destroy'
+            'get': 'retrieve'
         })),
         path('categorias/', CategoriaViewSet.as_view({
             'get': 'list'

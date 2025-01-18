@@ -164,8 +164,10 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
     'TAGS': [
+        {'name': 'marketplace', 'description': 'Operaciones del marketplace general'},
         {'name': 'tiendas', 'description': 'Operaciones relacionadas con tiendas'},
-        {'name': 'productos', 'description': 'Operaciones relacionadas con productos'},
-        {'name': 'categorias', 'description': 'Operaciones relacionadas con categorías'},
+        {'name': 'categorias', 'description': 'Operaciones de categorías y subcategorías'},
+        {'name': 'mi-negocio', 'description': 'Operaciones para gestionar tu propio negocio'},
+        {'name': 'auth', 'description': 'Operaciones de autenticación'},
     ],
 }

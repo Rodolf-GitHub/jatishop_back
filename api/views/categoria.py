@@ -11,27 +11,19 @@ from .base import BaseNegocioViewSet
 from ..permissions import IsNegocioOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
 import logging
+from drf_spectacular.utils import extend_schema, extend_schema_view
+from rest_framework import viewsets
 
 logger = logging.getLogger(__name__)
 
-class CategoriaViewSet(BaseNegocioViewSet):
+@extend_schema_view(
+    list=extend_schema(tags=['categorias'], description='Listar categorías'),
+    retrieve=extend_schema(tags=['categorias'], description='Obtener detalles de una categoría')
+)
+class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
-    
-    def get_permissions(self):
-        """
-        Permitir acceso público a list, retrieve y detalles
-        """
-        if self.action in ['list', 'retrieve', 'detalles', 'productos_subcategoria']:
-            permission_classes = [permissions.AllowAny]
-        else:
-            permission_classes = [IsNegocioOwnerOrReadOnly]
-        return [permission() for permission in permission_classes]
-
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return CategoriaDetalleSerializer
-        return CategoriaSerializer
+    permission_classes = [permissions.AllowAny]
 
     @action(detail=True, methods=['get'])
     def detalles(self, request, slug, pk=None):
@@ -93,19 +85,14 @@ class CategoriaViewSet(BaseNegocioViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class SubcategoriaViewSet(BaseNegocioViewSet):
+@extend_schema_view(
+    list=extend_schema(tags=['categorias'], description='Listar subcategorías'),
+    retrieve=extend_schema(tags=['categorias'], description='Obtener detalles de una subcategoría')
+)
+class SubcategoriaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Subcategoria.objects.all()
     serializer_class = SubcategoriaSerializer
-    
-    def get_permissions(self):
-        """
-        Permitir acceso público a list y retrieve
-        """
-        if self.action in ['list', 'retrieve']:
-            permission_classes = [permissions.AllowAny]
-        else:
-            permission_classes = [IsNegocioOwnerOrReadOnly]
-        return [permission() for permission in permission_classes]
+    permission_classes = [permissions.AllowAny]
 
     def get_serializer_class(self):
         if self.action == 'retrieve':

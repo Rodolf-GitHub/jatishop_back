@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from ...models import Producto, NegocioUser
 from ...serializers import ProductoSerializer
 
@@ -16,6 +17,43 @@ class AdminProductoViewSet(viewsets.ViewSet):
         except NegocioUser.DoesNotExist:
             return None
 
+    @extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar productos del negocio',
+        methods=['GET', 'POST'],
+        request=ProductoSerializer,
+        responses={
+            200: ProductoSerializer(many=True),
+            201: ProductoSerializer,
+            400: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            },
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        },
+        examples=[
+            OpenApiExample(
+                'Ejemplo de creación',
+                value={
+                    'nombre': 'Smartphone XYZ',
+                    'descripcion': 'Último modelo de smartphone',
+                    'precio': 299.99,
+                    'stock': 10,
+                    'subcategoria': 1,
+                    'imagen': 'smartphone.jpg',
+                    'en_oferta': True,
+                    'descuento': 15
+                }
+            )
+        ]
+    )
     @action(detail=False, methods=['get', 'post'])
     def my_products(self, request):
         """Gestionar productos del negocio"""

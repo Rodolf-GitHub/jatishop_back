@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from ...models import Categoria, NegocioUser
 from ...serializers import CategoriaSerializer
 
@@ -16,6 +17,38 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
         except NegocioUser.DoesNotExist:
             return None
 
+    @extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar categorías del negocio',
+        methods=['GET', 'POST'],
+        request=CategoriaSerializer,
+        responses={
+            200: CategoriaSerializer(many=True),
+            201: CategoriaSerializer,
+            400: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            },
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        },
+        examples=[
+            OpenApiExample(
+                'Ejemplo de creación',
+                value={
+                    'nombre': 'Electrónica',
+                    'descripcion': 'Productos electrónicos',
+                    'imagen': 'archivo_imagen.jpg'
+                }
+            )
+        ]
+    )
     @action(detail=False, methods=['get', 'post'])
     def my_categories(self, request):
         """Gestionar categorías del negocio"""
