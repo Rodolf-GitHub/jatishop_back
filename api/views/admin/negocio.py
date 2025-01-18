@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from ...models import InfoNegocio, NegocioUser
 from ...serializers import InfoNegocioSerializer
 
@@ -16,10 +17,36 @@ class AdminNegocioViewSet(viewsets.ViewSet):
         except NegocioUser.DoesNotExist:
             return None
 
+    @extend_schema(
+        tags=['mi-negocio'],
+        description='Crear un nuevo negocio para el usuario autenticado',
+        request=InfoNegocioSerializer,
+        responses={
+            201: InfoNegocioSerializer,
+            400: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        },
+        examples=[
+            OpenApiExample(
+                'Ejemplo de solicitud',
+                value={
+                    'nombre': 'Mi Tienda',
+                    'descripcion': 'Descripción de mi tienda',
+                    'telefono': '+53 55555555',
+                    'direccion': 'Dirección de mi tienda',
+                    'provincia': 'La Habana',
+                    'municipio': 'Plaza',
+                }
+            )
+        ]
+    )
     @action(detail=False, methods=['post'])
     def create_business(self, request):
         """Crear un nuevo negocio para el usuario autenticado"""
-        # Verificar si el usuario ya tiene un negocio
         if self.get_negocio(request.user):
             return Response(
                 {'error': 'Ya tienes un negocio asociado'}, 
@@ -28,19 +55,40 @@ class AdminNegocioViewSet(viewsets.ViewSet):
         
         serializer = InfoNegocioSerializer(data=request.data)
         if serializer.is_valid():
-            # Crear el negocio
             negocio = serializer.save()
-            
-            # Crear la relación NegocioUser
             NegocioUser.objects.create(
                 user=request.user,
                 negocio=negocio,
                 es_propietario=True
             )
-            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar información del negocio del usuario autenticado',
+        methods=['GET', 'PUT', 'PATCH', 'DELETE'],
+        request=InfoNegocioSerializer,
+        responses={
+            200: InfoNegocioSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        },
+        examples=[
+            OpenApiExample(
+                'Ejemplo de actualización',
+                value={
+                    'nombre': 'Nuevo nombre de tienda',
+                    'descripcion': 'Nueva descripción',
+                    'telefono': '+53 55555555',
+                }
+            )
+        ]
+    )
     @action(detail=False, methods=['get', 'put', 'patch', 'delete'])
     def my_business(self, request):
         """Gestionar información del negocio del usuario autenticado"""
