@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from ...models import Producto, NegocioUser
 from ...serializers import ProductoSerializer
 
@@ -50,43 +50,6 @@ class AdminProductoViewSet(viewsets.ViewSet):
         except NegocioUser.DoesNotExist:
             return None
 
-    @extend_schema(
-        tags=['mi-negocio'],
-        description='Gestionar productos del negocio',
-        methods=['GET', 'POST'],
-        request=ProductoSerializer,
-        responses={
-            200: ProductoSerializer(many=True),
-            201: ProductoSerializer,
-            400: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            },
-            404: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        },
-        examples=[
-            OpenApiExample(
-                'Ejemplo de creación',
-                value={
-                    'nombre': 'Smartphone XYZ',
-                    'descripcion': 'Último modelo de smartphone',
-                    'precio': 299.99,
-                    'stock': 10,
-                    'subcategoria': 1,
-                    'imagen': 'smartphone.jpg',
-                    'en_oferta': True,
-                    'descuento': 15
-                }
-            )
-        ]
-    )
     @action(detail=False, methods=['get', 'post'])
     def my_products(self, request):
         """Gestionar productos del negocio"""
@@ -100,6 +63,9 @@ class AdminProductoViewSet(viewsets.ViewSet):
         if request.method == 'GET':
             productos = Producto.objects.filter(
                 subcategoria__categoria__negocio=negocio
+            ).select_related(
+                'subcategoria',
+                'subcategoria__categoria'
             )
             serializer = ProductoSerializer(productos, many=True)
             return Response(serializer.data)
@@ -130,7 +96,7 @@ class AdminProductoViewSet(viewsets.ViewSet):
 
         try:
             producto = Producto.objects.get(
-                pk=pk, 
+                pk=pk,
                 subcategoria__categoria__negocio=negocio
             )
         except Producto.DoesNotExist:
@@ -141,8 +107,8 @@ class AdminProductoViewSet(viewsets.ViewSet):
 
         if request.method in ['PUT', 'PATCH']:
             serializer = ProductoSerializer(
-                producto, 
-                data=request.data, 
+                producto,
+                data=request.data,
                 partial=request.method=='PATCH'
             )
             if serializer.is_valid():
