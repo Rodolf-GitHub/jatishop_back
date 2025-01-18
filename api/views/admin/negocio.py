@@ -36,6 +36,20 @@ from ...serializers import InfoNegocioSerializer, TiendaTemaSerializer
                 }
             }
         }
+    ),
+    update_theme=extend_schema(
+        tags=['mi-negocio'],
+        description='Actualizar el tema de mi negocio',
+        request=TiendaTemaSerializer,
+        responses={
+            200: TiendaTemaSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
     )
 )
 class AdminNegocioViewSet(viewsets.ViewSet):
@@ -148,25 +162,30 @@ class AdminNegocioViewSet(viewsets.ViewSet):
             )
             if serializer.is_valid():
                 negocio = serializer.save()
-                
-                # Actualizar tema si se proporciona
-                if 'tema' in request.data:
-                    tema = TiendaTema.objects.get_or_create(negocio=negocio)[0]
-                    tema_serializer = TiendaTemaSerializer(
-                        tema,
-                        data=request.data['tema'],
-                        partial=True
-                    )
-                    if tema_serializer.is_valid():
-                        tema_serializer.save()
-                        data = serializer.data
-                        data['tema'] = tema_serializer.data
-                        return Response(data)
-                    return Response(tema_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-                
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
         elif request.method == 'DELETE':
             negocio.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT) 
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['put'])
+    def update_theme(self, request):
+        """Actualizar el tema del negocio del usuario autenticado"""
+        negocio = self.get_negocio(request.user)
+        if not negocio:
+            return Response(
+                {'error': 'No tienes un negocio asociado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        tema = TiendaTema.objects.get_or_create(negocio=negocio)[0]
+        tema_serializer = TiendaTemaSerializer(
+            tema,
+            data=request.data,
+            partial=True
+        )
+        if tema_serializer.is_valid():
+            tema_serializer.save()
+            return Response(tema_serializer.data)
+        return Response(tema_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
