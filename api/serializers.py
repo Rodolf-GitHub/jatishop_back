@@ -29,6 +29,12 @@ class SubcategoriaSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ProductoSerializer(serializers.ModelSerializer):
+    subcategoria = SubcategoriaSerializer(read_only=True)
+    subcategoria_id = serializers.PrimaryKeyRelatedField(
+        source='subcategoria',
+        queryset=Subcategoria.objects.all(),
+        write_only=True
+    )
     precio_con_descuento = serializers.DecimalField(
         max_digits=10,
         decimal_places=2,
