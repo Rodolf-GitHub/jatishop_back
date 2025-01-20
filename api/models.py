@@ -268,7 +268,7 @@ class Producto(models.Model):
         if self.nombre and self.subcategoria_id:
             negocio = self.subcategoria.categoria.negocio
             productos_existentes = Producto.objects.filter(
-                nombre=self.nombre,
+                nombre__iexact=self.nombre,  # Agregamos iexact para hacer la comparación insensible a mayúsculas/minúsculas
                 subcategoria__categoria__negocio=negocio
             )
             if self.pk:
@@ -280,20 +280,9 @@ class Producto(models.Model):
                 })
 
     def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.nombre
-
-    @property
-    def precio_con_descuento(self):
-        if self.descuento > 0:
-            descuento = (self.precio * self.descuento) / 100
-            return self.precio - descuento
-        return self.precio
-
-    def save(self, *args, **kwargs):
+        self.full_clean()  # Esto ejecutará el método clean()
+        
+        # Manejo de la imagen anterior
         try:
             old_instance = Producto.objects.get(pk=self.pk)
             if old_instance.imagen and self.imagen != old_instance.imagen:
@@ -307,19 +296,28 @@ class Producto(models.Model):
             img = Image.open(self.imagen)
             img_format = img.format
             
-            # Redimensionar la imagen si es mayor a 5 KB
             while True:
                 img_io = BytesIO()
-                img.save(img_io, format=img_format, quality=85)  # Ajusta la calidad según sea necesario
+                img.save(img_io, format=img_format, quality=85)
                 img_size = img_io.getbuffer().nbytes
                 
                 if img_size <= 20 * 1024:  # 20 KB
                     break
-                img = img.resize((int(img.width * 0.9), int(img.height * 0.9)))  # Reducir tamaño
+                img = img.resize((int(img.width * 0.9), int(img.height * 0.9)))
 
             self.imagen.save(self.imagen.name, ContentFile(img_io.getvalue()), save=False)
 
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.nombre
+
+    @property
+    def precio_con_descuento(self):
+        if self.descuento > 0:
+            descuento = (self.precio * self.descuento) / 100
+            return self.precio - descuento
+        return self.precio
 
     def delete(self, *args, **kwargs):
         if self.imagen:
