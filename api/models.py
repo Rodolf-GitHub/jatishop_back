@@ -268,7 +268,7 @@ class Producto(models.Model):
         if self.nombre and self.subcategoria_id:
             negocio = self.subcategoria.categoria.negocio
             productos_existentes = Producto.objects.filter(
-                nombre__iexact=self.nombre,
+                nombre__iexact=self.nombre,  # Agregamos iexact para hacer la comparación insensible a mayúsculas/minúsculas
                 subcategoria__categoria__negocio=negocio
             )
             if self.pk:
@@ -276,10 +276,7 @@ class Producto(models.Model):
             
             if productos_existentes.exists():
                 raise ValidationError({
-                    'nombre': {
-                        'code': 'producto_duplicado',
-                        'message': f'Ya existe un producto llamado "{self.nombre}" en este negocio'
-                    }
+                    'nombre': 'Ya existe un producto con este nombre en este negocio'
                 })
 
     def save(self, *args, **kwargs):
