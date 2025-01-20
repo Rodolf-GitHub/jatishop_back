@@ -25,7 +25,9 @@ class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CategoriaSerializer
 
     def get_queryset(self):
+        slug = self.kwargs.get('slug')
         return Categoria.objects.filter(
+            negocio__slug=slug,
             subcategorias__productos__activo=True
         ).distinct()
 
@@ -101,9 +103,15 @@ class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
     retrieve=extend_schema(tags=['categorias'], description='Obtener detalles de una subcategoría')
 )
 class SubcategoriaViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Subcategoria.objects.all()
-    serializer_class = SubcategoriaSerializer
     permission_classes = [permissions.AllowAny]
+    serializer_class = SubcategoriaSerializer
+
+    def get_queryset(self):
+        slug = self.kwargs.get('slug')
+        return Subcategoria.objects.filter(
+            categoria__negocio__slug=slug,
+            productos__activo=True
+        ).distinct()
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
