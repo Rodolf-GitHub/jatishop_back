@@ -21,9 +21,13 @@ logger = logging.getLogger(__name__)
     retrieve=extend_schema(tags=['categorias'], description='Obtener detalles de una categoría')
 )
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Categoria.objects.all()
-    serializer_class = CategoriaSerializer
     permission_classes = [permissions.AllowAny]
+    serializer_class = CategoriaSerializer
+
+    def get_queryset(self):
+        return Categoria.objects.filter(
+            subcategorias__productos__activo=True
+        ).distinct()
 
     @action(detail=True, methods=['get'])
     def detalles(self, request, slug, pk=None):
@@ -31,8 +35,15 @@ class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
         subcategoria_id = request.query_params.get('subcategoria', None)
         search_query = request.query_params.get('search', '').strip()
         
-        subcategorias = categoria.subcategorias.all()
-        productos = Producto.objects.filter(subcategoria__categoria=categoria)
+        # Filtrar subcategorías que tienen productos
+        subcategorias = categoria.subcategorias.filter(
+            productos__activo=True
+        ).distinct()
+        
+        productos = Producto.objects.filter(
+            subcategoria__categoria=categoria,
+            activo=True
+        )
         
         if subcategoria_id:
             productos = productos.filter(subcategoria_id=subcategoria_id)

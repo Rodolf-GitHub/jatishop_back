@@ -18,6 +18,7 @@ class ProductoPagination(PageNumberPagination):
             {'name': 'municipio', 'type': str, 'description': 'Filtrar por municipio'},
             {'name': 'categoria', 'type': int, 'description': 'Filtrar por categoría'},
             {'name': 'subcategoria', 'type': int, 'description': 'Filtrar por subcategoría'},
+            {'name': 'search', 'type': str, 'description': 'Buscar por nombre de producto'},
         ]
     ),
     retrieve=extend_schema(
@@ -41,6 +42,11 @@ class MarketplaceProductoViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = Producto.objects.filter(activo=True)
+        
+        # Búsqueda por nombre
+        search_query = self.request.query_params.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(nombre__icontains=search_query)
         
         # Mantener los filtros existentes
         negocio_slug = self.request.query_params.get('negocio', None)
