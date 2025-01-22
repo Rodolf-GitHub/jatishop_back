@@ -29,19 +29,14 @@ class ProductoPagination(PageNumberPagination):
 class MarketplaceProductoViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductoSerializer
     pagination_class = ProductoPagination
-    
-    def get_permissions(self):
-        """
-        Permitir acceso público a list y retrieve
-        """
-        if self.action in ['list', 'retrieve']:
-            permission_classes = [permissions.AllowAny]
-        else:
-            permission_classes = [permissions.IsAuthenticated]
-        return [permission() for permission in permission_classes]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        queryset = Producto.objects.filter(activo=True)
+        # Solo filtramos por activo en las vistas públicas del marketplace
+        queryset = Producto.objects.filter(
+            activo=True,
+            subcategoria__categoria__negocio__activo=True  # Filtramos negocios activos
+        )
         
         # Búsqueda por nombre
         search_query = self.request.query_params.get('search', '').strip()

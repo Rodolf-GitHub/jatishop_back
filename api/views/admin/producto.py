@@ -45,12 +45,34 @@ class AdminProductoViewSet(viewsets.ViewSet):
     
     def get_negocio(self, user):
         try:
+            # No filtramos por activo para admin
             negocio_user = NegocioUser.objects.get(user=user)
             return negocio_user.negocio
         except NegocioUser.DoesNotExist:
             return None
 
-    @action(detail=False, methods=['get', 'post'])
+    @action(detail=False, methods=['get'])
+    def my_products(self, request):
+        """Obtener productos del negocio del usuario autenticado"""
+        negocio = self.get_negocio(request.user)
+        if not negocio:
+            return Response(
+                {'error': 'No tienes un negocio asociado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # No filtramos por activo para admin
+        productos = Producto.objects.filter(
+            subcategoria__categoria__negocio=negocio
+        ).select_related(
+            'subcategoria',
+            'subcategoria__categoria'
+        )
+        
+        serializer = ProductoSerializer(productos, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
     def my_products(self, request):
         """Gestionar productos del negocio"""
         negocio = self.get_negocio(request.user)

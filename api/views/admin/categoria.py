@@ -76,6 +76,7 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
 
     def get_negocio(self, user):
         try:
+            # No filtramos por activo para admin
             negocio_user = NegocioUser.objects.get(user=user)
             return negocio_user.negocio
         except NegocioUser.DoesNotExist:
@@ -113,34 +114,23 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
             )
         ]
     )
-    @action(detail=False, methods=['get', 'post'])
+    @action(detail=False, methods=['get'])
     def my_categories(self, request):
-        """Gestionar categorías del negocio"""
+        """Obtener categorías del negocio del usuario autenticado"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
                 {'error': 'No tienes un negocio asociado'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
-
-        if request.method == 'GET':
-            categorias = Categoria.objects.filter(negocio=negocio)
-            serializer = CategoriaSerializer(categorias, many=True)
-            data = serializer.data
-            
-            # Añadir subcategorías a cada categoría
-            for categoria in data:
-                subcategorias = Subcategoria.objects.filter(categoria_id=categoria['id'])
-                categoria['subcategorias'] = SubcategoriaSerializer(subcategorias, many=True).data
-                
-            return Response(data)
-            
-        elif request.method == 'POST':
-            serializer = CategoriaSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save(negocio=negocio)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # No filtramos por activo para admin
+        categorias = Categoria.objects.filter(
+            negocio=negocio
+        ).prefetch_related('subcategorias')
+        
+        serializer = CategoriaSerializer(categorias, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['put', 'patch', 'delete'])
     def manage_category(self, request, pk=None):
