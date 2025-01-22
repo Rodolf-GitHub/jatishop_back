@@ -47,7 +47,12 @@ class InfoNegocioViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
-        queryset = InfoNegocio.objects.filter(activo=True)
+        # Si es una petición autenticada y tiene el token, no filtramos por activo
+        if self.request.user and self.request.user.is_authenticated:
+            queryset = InfoNegocio.objects.all()
+        else:
+            # Para vistas públicas, solo mostramos negocios activos
+            queryset = InfoNegocio.objects.filter(activo=True)
 
         provincia = self.request.query_params.get('provincia')
         municipio = self.request.query_params.get('municipio')
@@ -67,8 +72,8 @@ class InfoNegocioViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_object(self):
-        queryset = self.get_queryset()
-        negocio_slug = self.kwargs.get('negocio_slug')
+        queryset = InfoNegocio.objects.all()  # No filtramos por activo aquí
+        negocio_slug = self.kwargs.get('slug')
         if negocio_slug is None:
             return super().get_object()
         
