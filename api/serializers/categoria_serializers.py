@@ -6,6 +6,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categoria
         exclude = ('negocio',)
+        include = ('subcategorias',)
 
 class CategoriaDetalleSerializer(CategoriaSerializer):
     subcategorias = SubcategoriaDetalleSerializer(many=True, read_only=True)
