@@ -3,9 +3,9 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from ..models import InfoNegocio, NegocioUser
-from ..serializers import InfoNegocioSerializer, NegocioDetalleSerializer
-from ..permissions import IsNegocioOwnerOrReadOnly
+from ...models.negocio_models import InfoNegocio, NegocioUser
+from ...serializers.info_negocio_serializers import InfoNegocioSerializer, NegocioDetalleSerializer
+from ...utils.permissions import IsNegocioOwnerOrReadOnly
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
 @extend_schema_view(

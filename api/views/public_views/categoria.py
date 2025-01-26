@@ -1,14 +1,17 @@
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from ..models import Categoria, Subcategoria, Producto
-from ..serializers import (
+from ...models.categoria_models import Categoria, Subcategoria
+from ...models.producto_models import Producto
+from ...serializers.categoria_serializers import (
     CategoriaSerializer, CategoriaDetalleSerializer,
-    SubcategoriaSerializer, SubcategoriaDetalleSerializer,
-    ProductoSerializer
+     SubcategoriaDetalleSerializer,
+    
 )
+from ...serializers.producto_serializers import ProductoSerializer
+from ...serializers.subcategoria_serializers import SubcategoriaSerializer
 from .base import BaseNegocioViewSet
-from ..permissions import IsNegocioOwnerOrReadOnly
+from ...utils.permissions import IsNegocioOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
 import logging
 from drf_spectacular.utils import extend_schema, extend_schema_view

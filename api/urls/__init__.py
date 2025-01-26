@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
 from .public_urls import marketplace_urls, tienda_urls, auth_urls
-from .admin_urls import admin_urls
+from .admin_urls.admin_negocio import *
+from .admin_urls.admin_categorias import *
+from .admin_urls.admin_productos import *
 
 # Vista home simple
 @api_view(['GET'])

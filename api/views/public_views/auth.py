@@ -6,10 +6,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets, permissions, status
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from ..serializers import UserAuthSerializer
+from ...serializers.user_auth_serializers import UserAuthSerializer
 import logging
 from drf_spectacular.utils import extend_schema
-from ..models import NegocioUser
+from ...models.negocio_models import NegocioUser
 
 logger = logging.getLogger(__name__)
 

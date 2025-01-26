@@ -1,9 +1,7 @@
 from rest_framework import serializers
 from ..models import Subcategoria, Producto
-from .subcategoria_serializers import SubcategoriaSerializer
 
 class ProductoSerializer(serializers.ModelSerializer):
-    subcategoria = SubcategoriaSerializer(read_only=True)
     subcategoria_id = serializers.PrimaryKeyRelatedField(
         source='subcategoria',
         queryset=Subcategoria.objects.all(),
@@ -29,4 +27,4 @@ class ProductoSerializer(serializers.ModelSerializer):
         return obj.subcategoria.categoria.negocio.slug if obj.subcategoria and obj.subcategoria.categoria and obj.subcategoria.categoria.negocio else None
 
     def get_tienda_id(self, obj):
-        return obj.subcategoria.categoria.negocio.id if obj.subcategoria and obj.subcategoria.categoria and obj.subcategoria.categoria.negocio else None 
+        return obj.subcategoria.categoria.negocio.id if obj.subcategoria and obj.subcategoria.categoria and obj.subcategoria.categoria.negocio else None

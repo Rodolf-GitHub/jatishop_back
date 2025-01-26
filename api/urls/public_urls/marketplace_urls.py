@@ -1,8 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from ...views.marketplace import MarketplaceProductoViewSet
-from ...views.negocio import InfoNegocioViewSet
-from ...views.ubicacion import get_provincias, get_municipios
+from ...views.public_views.marketplace import MarketplaceProductoViewSet
+from ...views.public_views.negocio import InfoNegocioViewSet
+from ...views.public_views.ubicacion import get_provincias, get_municipios
 
 # Router para el marketplace
 marketplace_router = DefaultRouter()

@@ -1,5 +1,5 @@
 from django.urls import path
-from ...views.auth import CustomAuthToken, logout, UserAuthViewSet
+from ...views.public_views.auth import CustomAuthToken, logout, UserAuthViewSet
 
 urlpatterns = [
     path('login/', CustomAuthToken.as_view(), name='api_token_auth'),

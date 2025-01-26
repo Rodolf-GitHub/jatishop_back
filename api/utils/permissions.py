@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from .models import NegocioUser
+from ..models.negocio_models import NegocioUser
 
 class IsNegocioOwnerOrReadOnly(permissions.BasePermission):
     """

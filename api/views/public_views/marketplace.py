@@ -1,8 +1,8 @@
 from rest_framework import viewsets, permissions
 from rest_framework.pagination import PageNumberPagination
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from ..models import Producto
-from ..serializers import ProductoSerializer
+from ...models.producto_models import Producto
+from ...serializers.producto_serializers import ProductoSerializer
 
 class ProductoPagination(PageNumberPagination):
     page_size = 10

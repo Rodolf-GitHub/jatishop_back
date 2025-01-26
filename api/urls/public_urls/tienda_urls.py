@@ -1,7 +1,9 @@
 from django.urls import path
-from ...views.negocio import InfoNegocioViewSet
-from ...views.producto import ProductoViewSet
-from ...views.categoria import CategoriaViewSet, SubcategoriaViewSet
+from ...views.public_views.negocio import InfoNegocioViewSet
+from ...views.public_views.producto import ProductoViewSet
+from ...views.public_views.categoria import CategoriaViewSet, SubcategoriaViewSet
+from django.urls import include
+
 
 urlpatterns = [
     # URLs específicas de cada tienda

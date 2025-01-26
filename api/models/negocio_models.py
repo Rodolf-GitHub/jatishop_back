@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 from colorfield.fields import ColorField
 import os
-from ..ubicaciones_cuba import PROVINCIAS, get_municipios
+from ..utils.ubicaciones_cuba import PROVINCIAS, get_municipios
 from django.core.exceptions import ValidationError
 
 class InfoNegocio(models.Model):

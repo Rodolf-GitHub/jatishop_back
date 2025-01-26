@@ -2,16 +2,15 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from ..models import (
+from ...models.producto_models import (
     Producto, 
-    InfoNegocio,
     Subcategoria,
-    Categoria
 )
-from ..serializers import ProductoSerializer
+from ...models.categoria_models import Categoria
+from ...serializers.producto_serializers import ProductoSerializer
 from .base import BaseNegocioViewSet
-from ..pagination import ProductPagination
-from ..permissions import IsNegocioOwnerOrReadOnly
+from ...utils.pagination import ProductPagination
+from ...utils.permissions import IsNegocioOwnerOrReadOnly
 import logging
 
 logger = logging.getLogger(__name__)

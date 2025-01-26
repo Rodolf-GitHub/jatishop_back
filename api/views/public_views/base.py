@@ -1,5 +1,6 @@
 from rest_framework import viewsets
-from ..models import Categoria, Subcategoria, Producto
+from ...models.categoria_models import Categoria, Subcategoria
+from ...models.producto_models import Producto
 
 class BaseNegocioViewSet(viewsets.ModelViewSet):
     def get_queryset(self):

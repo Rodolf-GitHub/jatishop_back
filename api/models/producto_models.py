@@ -5,7 +5,7 @@ from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
 import os
-from .categoria import Subcategoria
+from .categoria_models import Subcategoria
 
 class Producto(models.Model):
     nombre = models.CharField(max_length=200)

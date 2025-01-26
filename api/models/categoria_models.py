@@ -1,6 +1,6 @@
 from django.db import models
 import os
-from .negocio import InfoNegocio
+from .negocio_models import InfoNegocio
 
 class Categoria(models.Model):
     negocio = models.ForeignKey(InfoNegocio, on_delete=models.CASCADE)
