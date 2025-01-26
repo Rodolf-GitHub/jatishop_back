@@ -45,7 +45,6 @@ class AdminProductoViewSet(viewsets.ViewSet):
     
     def get_negocio(self, user):
         try:
-            # No filtramos por activo para admin
             negocio_user = NegocioUser.objects.get(user=user)
             return negocio_user.negocio
         except NegocioUser.DoesNotExist:
@@ -61,7 +60,6 @@ class AdminProductoViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # No filtramos por activo para admin
         productos = Producto.objects.filter(
             subcategoria__categoria__negocio=negocio
         ).select_related(
@@ -73,8 +71,8 @@ class AdminProductoViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'])
-    def my_products(self, request):
-        """Gestionar productos del negocio"""
+    def create_product(self, request):
+        """Crear un nuevo producto para el negocio"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -82,33 +80,21 @@ class AdminProductoViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if request.method == 'GET':
-            productos = Producto.objects.filter(
-                subcategoria__categoria__negocio=negocio
-            ).select_related(
-                'subcategoria',
-                'subcategoria__categoria'
-            )
-            serializer = ProductoSerializer(productos, many=True)
-            return Response(serializer.data)
-            
-        elif request.method == 'POST':
-            serializer = ProductoSerializer(data=request.data)
-            if serializer.is_valid():
-                # Verificar que la subcategoría pertenece al negocio
-                subcategoria = serializer.validated_data['subcategoria']
-                if subcategoria.categoria.negocio != negocio:
-                    return Response(
-                        {'error': 'La subcategoría no pertenece a tu negocio'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = ProductoSerializer(data=request.data)
+        if serializer.is_valid():
+            subcategoria = serializer.validated_data['subcategoria']
+            if subcategoria.categoria.negocio != negocio:
+                return Response(
+                    {'error': 'La subcategoría no pertenece a tu negocio'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['put', 'patch', 'delete'])
-    def manage_product(self, request, pk=None):
-        """Gestionar un producto específico"""
+    @action(detail=True, methods=['put', 'patch'])
+    def update_product(self, request, pk=None):
+        """Actualizar un producto específico"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -127,25 +113,43 @@ class AdminProductoViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if request.method in ['PUT', 'PATCH']:
-            serializer = ProductoSerializer(
-                producto,
-                data=request.data,
-                partial=request.method=='PATCH'
+        serializer = ProductoSerializer(
+            producto,
+            data=request.data,
+            partial=request.method == 'PATCH'
+        )
+        if serializer.is_valid():
+            if 'subcategoria' in serializer.validated_data:
+                subcategoria = serializer.validated_data['subcategoria']
+                if subcategoria.categoria.negocio != negocio:
+                    return Response(
+                        {'error': 'La subcategoría no pertenece a tu negocio'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['delete'])
+    def delete_product(self, request, pk=None):
+        """Eliminar un producto específico"""
+        negocio = self.get_negocio(request.user)
+        if not negocio:
+            return Response(
+                {'error': 'No tienes un negocio asociado'}, 
+                status=status.HTTP_404_NOT_FOUND
             )
-            if serializer.is_valid():
-                if 'subcategoria' in serializer.validated_data:
-                    # Verificar que la nueva subcategoría pertenece al negocio
-                    subcategoria = serializer.validated_data['subcategoria']
-                    if subcategoria.categoria.negocio != negocio:
-                        return Response(
-                            {'error': 'La subcategoría no pertenece a tu negocio'},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
-        elif request.method == 'DELETE':
-            producto.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT) 
+
+        try:
+            producto = Producto.objects.get(
+                pk=pk,
+                subcategoria__categoria__negocio=negocio
+            )
+        except Producto.DoesNotExist:
+            return Response(
+                {'error': 'Producto no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        producto.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
