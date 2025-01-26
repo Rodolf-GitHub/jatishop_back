@@ -7,4 +7,5 @@ router.register('negocio', AdminNegocioViewSet, basename='admin-negocio')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('resumen/', AdminNegocioViewSet.as_view({'get': 'get_resumen'}), name='admin-resumen'),
 ] 

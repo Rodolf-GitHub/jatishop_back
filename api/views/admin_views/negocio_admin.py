@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
-from ...models import InfoNegocio, NegocioUser, TiendaTema
+from ...models import InfoNegocio, NegocioUser, TiendaTema, Categoria, Subcategoria, Producto
 from ...serializers import InfoNegocioSerializer, TiendaTemaSerializer
 
 @extend_schema_view(
@@ -189,3 +189,46 @@ class AdminNegocioViewSet(viewsets.ViewSet):
             tema_serializer.save()
             return Response(tema_serializer.data)
         return Response(tema_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'])
+    def get_resumen(self, request):
+        """Obtener resumen de los recursos del usuario"""
+        try:
+            # Obtener el negocio del usuario
+            negocio_user = NegocioUser.objects.filter(user=request.user).first()
+            
+            if not negocio_user:
+                return Response({
+                    'negocio': False,
+                    'categoria': False,
+                    'subcategoria': False,
+                    'producto': False
+                })
+
+            negocio = negocio_user.negocio
+
+            # Verificar si tiene categorías
+            tiene_categorias = Categoria.objects.filter(negocio=negocio).exists()
+            
+            # Verificar si tiene subcategorías
+            tiene_subcategorias = Subcategoria.objects.filter(
+                categoria__negocio=negocio
+            ).exists()
+            
+            # Verificar si tiene productos
+            tiene_productos = Producto.objects.filter(
+                subcategoria__categoria__negocio=negocio
+            ).exists()
+
+            return Response({
+                'negocio': True,
+                'categoria': tiene_categorias,
+                'subcategoria': tiene_subcategorias,
+                'producto': tiene_productos
+            })
+
+        except Exception as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
