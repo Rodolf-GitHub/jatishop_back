@@ -1,14 +1,14 @@
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets, permissions, status
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from ...serializers.user_auth_serializers import UserAuthSerializer
+from ...serializers.user_auth_serializers import UserAuthSerializer, ChangePasswordSerializer
 import logging
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from ...models.negocio_models import NegocioUser
 
 logger = logging.getLogger(__name__)
@@ -84,10 +84,90 @@ def logout(request):
         request.user.auth_token.delete()
     return Response({'message': 'Sesión cerrada exitosamente'})
 
+@extend_schema_view(
+    me=extend_schema(
+        tags=['auth'],
+        description='Obtener datos del usuario autenticado'
+    ),
+    change_password=extend_schema(
+        tags=['auth'],
+        description='Cambiar contraseña del usuario'
+    )
+)
 class UserAuthViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserAuthSerializer
     permission_classes = [permissions.AllowAny]
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        """Obtener información del usuario autenticado"""
+        try:
+            user = request.user
+            # Obtener el negocio asociado si existe
+            negocio_user = NegocioUser.objects.filter(user=user).first()
+            negocio_data = None
+            if negocio_user:
+                negocio_data = {
+                    'id': negocio_user.negocio.id,
+                    'nombre': negocio_user.negocio.nombre,
+                    'slug': negocio_user.negocio.slug,
+                    'activo': negocio_user.negocio.activo
+                }
+
+            return Response({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'date_joined': user.date_joined,
+                'negocio': negocio_data
+            })
+        except Exception as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def change_password(self, request):
+        """Cambiar contraseña del usuario"""
+        try:
+            user = request.user
+            serializer = ChangePasswordSerializer(data=request.data)
+            
+            if serializer.is_valid():
+                # Verificar contraseña actual
+                if not user.check_password(serializer.data.get('current_password')):
+                    return Response(
+                        {'error': 'La contraseña actual es incorrecta'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                # Cambiar contraseña
+                user.set_password(serializer.data.get('new_password'))
+                user.save()
+
+                # Actualizar token
+                Token.objects.filter(user=user).delete()
+                token = Token.objects.create(user=user)
+
+                return Response({
+                    'message': 'Contraseña actualizada correctamente',
+                    'new_token': token.key
+                })
+            
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def create(self, request, *args, **kwargs):
         try:
