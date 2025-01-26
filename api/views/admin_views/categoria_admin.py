@@ -42,7 +42,7 @@ from ...serializers import CategoriaSerializer, SubcategoriaSerializer, Categori
     subcategories=extend_schema(
         tags=['mi-negocio'],
         description='Gestionar subcategorías de una categoría',
-        methods=['GET', 'POST'],
+        methods=['GET', 'POST', 'PUT'],
         request=SubcategoriaSerializer,
         responses={
             200: SubcategoriaSerializer(many=True),
@@ -169,7 +169,7 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
             categoria.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['get', 'post'])
+    @action(detail=True, methods=['get', 'post', 'put'])
     def subcategories(self, request, pk=None):
         """Gestionar subcategorías de una categoría"""
         negocio = self.get_negocio(request.user)
@@ -203,6 +203,14 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        elif request.method == 'PUT':
+            subcategoria = Subcategoria.objects.get(pk=request.data.get('id'), categoria=categoria)
+            serializer = SubcategoriaSerializer(subcategoria, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['put', 'patch', 'delete'], url_path='subcategories/(?P<subcategoria_pk>[^/.]+)')
     def manage_subcategory(self, request, pk=None, subcategoria_pk=None):
@@ -219,9 +227,11 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
             )
 
         if request.method in ['PUT', 'PATCH']:
+            data = request.data.copy()
+            data['categoria'] = categoria.id
             serializer = SubcategoriaSerializer(
                 subcategoria,
-                data=request.data,
+                data=data,
                 partial=request.method=='PATCH'
             )
             if serializer.is_valid():
