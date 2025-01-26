@@ -6,16 +6,17 @@ from rest_framework import status
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from ...models import Categoria, NegocioUser, Subcategoria
 from ...serializers import CategoriaSerializer, SubcategoriaSerializer
+from ...serializers.categoria_admin_serializers import CategoriaAdminSerializer
 
 @extend_schema_view(
     my_categories=extend_schema(
         tags=['mi-negocio'],
         description='Gestionar categorías de mi negocio',
         methods=['GET', 'POST'],
-        request=CategoriaSerializer,
+        request=CategoriaAdminSerializer,
         responses={
-            200: CategoriaSerializer(many=True),
-            201: CategoriaSerializer,
+            200: CategoriaAdminSerializer(many=True),
+            201: CategoriaAdminSerializer,
             404: {
                 'type': 'object',
                 'properties': {
@@ -86,10 +87,10 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
         tags=['mi-negocio'],
         description='Gestionar categorías del negocio',
         methods=['GET', 'POST'],
-        request=CategoriaSerializer,
+        request=CategoriaAdminSerializer,
         responses={
-            200: CategoriaSerializer(many=True),
-            201: CategoriaSerializer,
+            200: CategoriaAdminSerializer(many=True),
+            201: CategoriaAdminSerializer,
             400: {
                 'type': 'object',
                 'properties': {
@@ -114,9 +115,9 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
             )
         ]
     )
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get', 'post'])
     def my_categories(self, request):
-        """Obtener categorías del negocio del usuario autenticado"""
+        """Obtener o crear categorías del negocio del usuario autenticado"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -124,13 +125,21 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # No filtramos por activo para admin
-        categorias = Categoria.objects.filter(
-            negocio=negocio
-        ).prefetch_related('subcategorias')
-        
-        serializer = CategoriaSerializer(categorias, many=True)
-        return Response(serializer.data)
+        if request.method == 'GET':
+            categorias = Categoria.objects.filter(
+                negocio=negocio
+            ).prefetch_related('subcategorias')
+            
+            serializer = CategoriaAdminSerializer(categorias, many=True)
+            return Response(serializer.data)
+            
+        elif request.method == 'POST':
+            serializer = CategoriaAdminSerializer(data=request.data)
+            if serializer.is_valid():
+                # Guardamos la categoría asignando el negocio directamente
+                serializer.save(negocio=negocio)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['put', 'patch', 'delete'])
     def manage_category(self, request, pk=None):
@@ -210,9 +219,12 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
             )
 
         if request.method in ['PUT', 'PATCH']:
+            data = request.data.copy()
+            data['categoria'] = categoria.id
+            
             serializer = SubcategoriaSerializer(
                 subcategoria,
-                data=request.data,
+                data=data,
                 partial=request.method=='PATCH'
             )
             if serializer.is_valid():
