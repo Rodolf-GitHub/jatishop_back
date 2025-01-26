@@ -2,7 +2,7 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import viewsets, permissions, status
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
     description='Obtiene token de autenticación usando email o username'
 )
 class CustomAuthToken(ObtainAuthToken):
+    permission_classes = [AllowAny]  # Permitir acceso a cualquier usuario
+
     def post(self, request, *args, **kwargs):
         try:
             # Obtener las credenciales
@@ -78,7 +80,7 @@ class CustomAuthToken(ObtainAuthToken):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # Permitir acceso a cualquier usuario
 def logout(request):
     if hasattr(request.user, 'auth_token'):
         request.user.auth_token.delete()
@@ -97,7 +99,7 @@ def logout(request):
 class UserAuthViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserAuthSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny]  # Permitir acceso a cualquier usuario
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def me(self, request):
@@ -188,7 +190,7 @@ class UserAuthViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            permission_classes = [permissions.AllowAny]
+            permission_classes = [permissions.AllowAny]  # Permitir acceso a cualquier usuario
         else:
             permission_classes = [permissions.IsAdminUser]
         return [permission() for permission in permission_classes] 
