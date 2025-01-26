@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from ...models import Categoria, NegocioUser, Subcategoria
-from ...serializers import CategoriaSerializer, SubcategoriaSerializer
+from ...serializers import CategoriaSerializer, SubcategoriaSerializer, CategoriaDetalleSerializer
 
 @extend_schema_view(
     my_categories=extend_schema(
@@ -114,9 +114,9 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
             )
         ]
     )
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get', 'post'])
     def my_categories(self, request):
-        """Obtener categorías del negocio del usuario autenticado"""
+        """Obtener y crear categorías del negocio del usuario autenticado"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -124,13 +124,22 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # No filtramos por activo para admin
-        categorias = Categoria.objects.filter(
-            negocio=negocio
-        ).prefetch_related('subcategorias')
+        if request.method == 'GET':
+            categorias = Categoria.objects.filter(
+                negocio=negocio
+            ).prefetch_related('subcategorias')
+            serializer = CategoriaDetalleSerializer(categorias, many=True)
+            return Response(serializer.data)
         
-        serializer = CategoriaSerializer(categorias, many=True)
-        return Response(serializer.data)
+        elif request.method == 'POST':
+            serializer = CategoriaSerializer(data=request.data)
+            if serializer.is_valid():
+                categoria = serializer.save(negocio=negocio)
+                return Response(
+                    CategoriaDetalleSerializer(categoria).data, 
+                    status=status.HTTP_201_CREATED
+                )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['put', 'patch', 'delete'])
     def manage_category(self, request, pk=None):

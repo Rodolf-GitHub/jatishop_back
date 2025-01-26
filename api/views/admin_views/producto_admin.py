@@ -50,9 +50,9 @@ class AdminProductoViewSet(viewsets.ViewSet):
         except NegocioUser.DoesNotExist:
             return None
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get', 'post'])
     def my_products(self, request):
-        """Obtener productos del negocio del usuario autenticado"""
+        """Obtener y crear productos del negocio del usuario autenticado"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -60,37 +60,28 @@ class AdminProductoViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        productos = Producto.objects.filter(
-            subcategoria__categoria__negocio=negocio
-        ).select_related(
-            'subcategoria',
-            'subcategoria__categoria'
-        )
-        
-        serializer = ProductoSerializer(productos, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['post'])
-    def create_product(self, request):
-        """Crear un nuevo producto para el negocio"""
-        negocio = self.get_negocio(request.user)
-        if not negocio:
-            return Response(
-                {'error': 'No tienes un negocio asociado'}, 
-                status=status.HTTP_404_NOT_FOUND
+        if request.method == 'GET':
+            productos = Producto.objects.filter(
+                subcategoria__categoria__negocio=negocio
+            ).select_related(
+                'subcategoria',
+                'subcategoria__categoria'
             )
-
-        serializer = ProductoSerializer(data=request.data)
-        if serializer.is_valid():
-            subcategoria = serializer.validated_data['subcategoria']
-            if subcategoria.categoria.negocio != negocio:
-                return Response(
-                    {'error': 'La subcategoría no pertenece a tu negocio'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer = ProductoSerializer(productos, many=True)
+            return Response(serializer.data)
+            
+        elif request.method == 'POST':
+            serializer = ProductoSerializer(data=request.data)
+            if serializer.is_valid():
+                subcategoria = serializer.validated_data['subcategoria']
+                if subcategoria.categoria.negocio != negocio:
+                    return Response(
+                        {'error': 'La subcategoría no pertenece a tu negocio'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                producto = serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['put', 'patch'])
     def update_product(self, request, pk=None):
