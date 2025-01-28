@@ -7,10 +7,41 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from ...models import Producto, NegocioUser
 from ...serializers import ProductoSerializer
 
-class AdminProductoViewSet(viewsets.ModelViewSet):
-    serializer_class = ProductoSerializer
+@extend_schema_view(
+    my_products=extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar productos de mi negocio',
+        methods=['GET', 'POST'],
+        request=ProductoSerializer,
+        responses={
+            200: ProductoSerializer(many=True),
+            201: ProductoSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    ),
+    manage_product=extend_schema(
+        tags=['mi-negocio'],
+        description='Gestionar un producto específico',
+        methods=['PUT', 'PATCH', 'DELETE'],
+        request=ProductoSerializer,
+        responses={
+            200: ProductoSerializer,
+            404: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    )
+)
+class AdminProductoViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = Producto.objects.none()  # Se sobrescribe en get_queryset
     
     def get_negocio(self, user):
         try:
@@ -21,6 +52,7 @@ class AdminProductoViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get', 'post'])
     def my_products(self, request):
+        """Obtener y crear productos del negocio del usuario autenticado"""
         print("DEBUG - Método:", request.method)
         print("DEBUG - Data recibida:", request.data)
         
@@ -86,6 +118,7 @@ class AdminProductoViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk=None):
+        """Actualizar un producto completo"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -119,6 +152,7 @@ class AdminProductoViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['put', 'patch'])
     def update_product(self, request, pk=None):
+        """Actualizar un producto específico"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -157,6 +191,7 @@ class AdminProductoViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['delete'])
     def delete_product(self, request, pk=None):
+        """Eliminar un producto específico"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(

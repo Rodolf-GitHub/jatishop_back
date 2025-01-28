@@ -3,27 +3,32 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework import viewsets, permissions, status, generics
+from rest_framework import viewsets, permissions, status
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from ...serializers.user_auth_serializers import UserAuthSerializer, ChangePasswordSerializer
 import logging
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from ...models.negocio_models import NegocioUser
-from rest_framework import serializers
 
 logger = logging.getLogger(__name__)
 
+@extend_schema(
+    tags=['auth'],
+    description='Obtiene token de autenticación usando email o username'
+)
 class CustomAuthToken(ObtainAuthToken):
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # Permitir acceso a cualquier usuario
 
     def post(self, request, *args, **kwargs):
         try:
+            # Obtener las credenciales
             username = request.data.get('username')
             password = request.data.get('password')
 
             logger.info(f"Intento de login con: {username}")
 
+            # Si parece ser un email, buscar el usuario correspondiente
             if '@' in username:
                 try:
                     user = User.objects.get(email=username)
@@ -35,6 +40,7 @@ class CustomAuthToken(ObtainAuthToken):
                         'error': 'No existe usuario con ese email'
                     }, status=status.HTTP_404_NOT_FOUND)
 
+            # Intentar autenticar al usuario
             user = authenticate(username=username, password=password)
             
             if user is None:
@@ -43,8 +49,10 @@ class CustomAuthToken(ObtainAuthToken):
                     'error': 'Credenciales inválidas'
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
+            # Si la autenticación es exitosa, generar o recuperar el token
             token, created = Token.objects.get_or_create(user=user)
             
+            # Obtener el negocio asociado al usuario si existe
             negocio_user = NegocioUser.objects.filter(user=user).first()
             negocio_data = None
             if negocio_user:
@@ -71,27 +79,34 @@ class CustomAuthToken(ObtainAuthToken):
                 'details': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class LogoutSerializer(serializers.Serializer):
-    message = serializers.CharField(read_only=True)
+@api_view(['POST'])
+@permission_classes([AllowAny])  # Permitir acceso a cualquier usuario
+def logout(request):
+    if hasattr(request.user, 'auth_token'):
+        request.user.auth_token.delete()
+    return Response({'message': 'Sesión cerrada exitosamente'})
 
-class LogoutView(generics.GenericAPIView):
-    serializer_class = LogoutSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        if hasattr(request.user, 'auth_token'):
-            request.user.auth_token.delete()
-        return Response({'message': 'Sesión cerrada exitosamente'})
-
+@extend_schema_view(
+    me=extend_schema(
+        tags=['auth'],
+        description='Obtener datos del usuario autenticado'
+    ),
+    change_password=extend_schema(
+        tags=['auth'],
+        description='Cambiar contraseña del usuario'
+    )
+)
 class UserAuthViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserAuthSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny]  # Permitir acceso a cualquier usuario
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def me(self, request):
+        """Obtener información del usuario autenticado"""
         try:
             user = request.user
+            # Obtener el negocio asociado si existe
             negocio_user = NegocioUser.objects.filter(user=user).first()
             negocio_data = None
             if negocio_user:
@@ -119,20 +134,24 @@ class UserAuthViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def change_password(self, request):
+        """Cambiar contraseña del usuario"""
         try:
             user = request.user
             serializer = ChangePasswordSerializer(data=request.data)
             
             if serializer.is_valid():
+                # Verificar contraseña actual
                 if not user.check_password(serializer.data.get('current_password')):
                     return Response(
                         {'error': 'La contraseña actual es incorrecta'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
+                # Cambiar contraseña
                 user.set_password(serializer.data.get('new_password'))
                 user.save()
 
+                # Actualizar token
                 Token.objects.filter(user=user).delete()
                 token = Token.objects.create(user=user)
 
@@ -171,7 +190,7 @@ class UserAuthViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            permission_classes = [permissions.AllowAny]
+            permission_classes = [permissions.AllowAny]  # Permitir acceso a cualquier usuario
         else:
             permission_classes = [permissions.IsAdminUser]
         return [permission() for permission in permission_classes] 

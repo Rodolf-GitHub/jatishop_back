@@ -1,29 +1,29 @@
-from rest_framework import generics
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from rest_framework import serializers
 from ...utils.ubicaciones_cuba import PROVINCIAS, get_municipios as get_municipios_cuba
+from drf_spectacular.utils import extend_schema
 
-class UbicacionSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    nombre = serializers.CharField()
+@extend_schema(
+    tags=['ubicaciones'],
+    description='Obtener lista de provincias de Cuba'
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])  # Explícitamente permitir acceso público
+def get_provincias(request):
+    return Response(PROVINCIAS)
 
-class ProvinciasView(generics.GenericAPIView):
-    permission_classes = [AllowAny]
-    serializer_class = UbicacionSerializer
-    
-    def get(self, request):
-        return Response(PROVINCIAS)
-
-class MunicipiosView(generics.GenericAPIView):
-    permission_classes = [AllowAny]
-    serializer_class = UbicacionSerializer
-    
-    def get(self, request, provincia):
-        municipios = get_municipios_cuba(provincia)
-        if not municipios:
-            return Response(
-                {'error': f'No se encontraron municipios para la provincia {provincia}'}, 
-                status=404
-            )
-        return Response(municipios)
+@extend_schema(
+    tags=['ubicaciones'],
+    description='Obtener municipios de una provincia específica'
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])  # Explícitamente permitir acceso público
+def get_municipios(request, provincia):
+    municipios = get_municipios_cuba(provincia)
+    if not municipios:
+        return Response(
+            {'error': f'No se encontraron municipios para la provincia {provincia}'}, 
+            status=404
+        )
+    return Response(municipios)

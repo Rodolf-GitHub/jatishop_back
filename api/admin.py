@@ -17,7 +17,6 @@ class TiendaTemaInline(admin.StackedInline):
         ColorField: {'widget': ColorWidget},
     }
 
-
     def has_delete_permission(self, request, obj=None):
         return False
 

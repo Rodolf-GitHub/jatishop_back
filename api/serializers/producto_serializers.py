@@ -1,8 +1,6 @@
 from rest_framework import serializers
 from ..models import Subcategoria, Producto, InfoNegocio
 from .info_negocio_serializers import TiendaTemaSerializer
-from typing import Dict, Any
-from decimal import Decimal
 
 class NegocioReducidoSerializer(serializers.ModelSerializer):
     tema = TiendaTemaSerializer(read_only=True)
@@ -20,13 +18,7 @@ class NegocioReducidoSerializer(serializers.ModelSerializer):
         ]
 
 class ProductoSerializer(serializers.ModelSerializer):
-    negocio: Dict[str, Any] = serializers.SerializerMethodField()
-    precio_con_descuento: float = serializers.FloatField(read_only=True)
-    precio = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        min_value=Decimal('0.00')
-    )
+    negocio = serializers.SerializerMethodField()
 
     class Meta:
         model = Producto
@@ -45,12 +37,9 @@ class ProductoSerializer(serializers.ModelSerializer):
             'updated_at',
             'negocio'
         ]
-        read_only_fields = [
-            'id', 'precio_con_descuento', 
-            'created_at', 'updated_at', 'negocio'
-        ]
+        read_only_fields = ['id', 'precio_con_descuento', 'created_at', 'updated_at', 'negocio']
 
-    def get_negocio(self, obj) -> Dict[str, Any]:
+    def get_negocio(self, obj):
         negocio = obj.subcategoria.categoria.negocio
         return NegocioReducidoSerializer(negocio).data
 
