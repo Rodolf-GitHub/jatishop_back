@@ -7,8 +7,10 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from ...models import Producto, NegocioUser
 from ...serializers import ProductoSerializer
 
-class AdminProductoViewSet(viewsets.ViewSet):
+class AdminProductoViewSet(viewsets.ModelViewSet):
+    serializer_class = ProductoSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Producto.objects.none()  # Se sobrescribe en get_queryset
     
     def get_negocio(self, user):
         try:

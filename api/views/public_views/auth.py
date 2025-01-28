@@ -3,13 +3,14 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, generics
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from ...serializers.user_auth_serializers import UserAuthSerializer, ChangePasswordSerializer
 import logging
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from ...models.negocio_models import NegocioUser
+from rest_framework import serializers
 
 logger = logging.getLogger(__name__)
 
@@ -70,12 +71,17 @@ class CustomAuthToken(ObtainAuthToken):
                 'details': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def logout(request):
-    if hasattr(request.user, 'auth_token'):
-        request.user.auth_token.delete()
-    return Response({'message': 'Sesión cerrada exitosamente'})
+class LogoutSerializer(serializers.Serializer):
+    message = serializers.CharField(read_only=True)
+
+class LogoutView(generics.GenericAPIView):
+    serializer_class = LogoutSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        if hasattr(request.user, 'auth_token'):
+            request.user.auth_token.delete()
+        return Response({'message': 'Sesión cerrada exitosamente'})
 
 class UserAuthViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
