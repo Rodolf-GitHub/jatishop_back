@@ -7,116 +7,18 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 from ...models import Categoria, NegocioUser, Subcategoria
 from ...serializers import CategoriaSerializer, SubcategoriaSerializer, CategoriaDetalleSerializer
 
-@extend_schema_view(
-    my_categories=extend_schema(
-        tags=['mi-negocio'],
-        description='Gestionar categorías de mi negocio',
-        methods=['GET', 'POST'],
-        request=CategoriaSerializer,
-        responses={
-            200: CategoriaSerializer(many=True),
-            201: CategoriaSerializer,
-            404: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    ),
-    manage_category=extend_schema(
-        tags=['mi-negocio'],
-        description='Gestionar una categoría específica',
-        methods=['PUT', 'PATCH', 'DELETE'],
-        request=CategoriaSerializer,
-        responses={
-            200: CategoriaSerializer,
-            404: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    ),
-    subcategories=extend_schema(
-        tags=['mi-negocio'],
-        description='Gestionar subcategorías de una categoría',
-        methods=['GET', 'POST', 'PUT'],
-        request=SubcategoriaSerializer,
-        responses={
-            200: SubcategoriaSerializer(many=True),
-            201: SubcategoriaSerializer,
-            404: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    ),
-    manage_subcategory=extend_schema(
-        tags=['mi-negocio'],
-        description='Gestionar una subcategoría específica',
-        methods=['PUT', 'PATCH', 'DELETE'],
-        request=SubcategoriaSerializer,
-        responses={
-            200: SubcategoriaSerializer,
-            404: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    )
-)
 class AdminCategoriaViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_negocio(self, user):
         try:
-            # No filtramos por activo para admin
             negocio_user = NegocioUser.objects.get(user=user)
             return negocio_user.negocio
         except NegocioUser.DoesNotExist:
             return None
 
-    @extend_schema(
-        tags=['mi-negocio'],
-        description='Gestionar categorías del negocio',
-        methods=['GET', 'POST'],
-        request=CategoriaSerializer,
-        responses={
-            200: CategoriaSerializer(many=True),
-            201: CategoriaSerializer,
-            400: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            },
-            404: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        },
-        examples=[
-            OpenApiExample(
-                'Ejemplo de creación',
-                value={
-                    'nombre': 'Electrónica',
-                    'descripcion': 'Productos electrónicos',
-                    'imagen': 'archivo_imagen.jpg'
-                }
-            )
-        ]
-    )
     @action(detail=False, methods=['get', 'post'])
     def my_categories(self, request):
-        """Obtener y crear categorías del negocio del usuario autenticado"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -143,7 +45,6 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['put', 'patch', 'delete'])
     def manage_category(self, request, pk=None):
-        """Gestionar una categoría específica"""
         negocio_user = NegocioUser.objects.get(user=request.user)
 
         try:
@@ -171,7 +72,6 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['get', 'post', 'put'])
     def subcategories(self, request, pk=None):
-        """Gestionar subcategorías de una categoría"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -193,9 +93,7 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
             return Response(serializer.data)
 
         elif request.method == 'POST':
-            # Crear un nuevo diccionario con los datos del request
             data = request.data.copy()
-            # Añadir el ID de la categoría
             data['categoria'] = categoria.id
             
             serializer = SubcategoriaSerializer(data=data)
@@ -214,7 +112,6 @@ class AdminCategoriaViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['put', 'patch', 'delete'], url_path='subcategories/(?P<subcategoria_pk>[^/.]+)')
     def manage_subcategory(self, request, pk=None, subcategoria_pk=None):
-        """Gestionar una subcategoría específica"""
         negocio_user = NegocioUser.objects.get(user=request.user)
 
         try:

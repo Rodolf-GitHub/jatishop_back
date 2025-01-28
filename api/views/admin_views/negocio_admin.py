@@ -7,51 +7,6 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 from ...models import InfoNegocio, NegocioUser, TiendaTema, Categoria, Subcategoria, Producto
 from ...serializers import InfoNegocioSerializer, TiendaTemaSerializer
 
-@extend_schema_view(
-    create_business=extend_schema(
-        tags=['mi-negocio'],
-        description='Crear un nuevo negocio',
-        request=InfoNegocioSerializer,
-        responses={
-            201: InfoNegocioSerializer,
-            400: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    ),
-    my_business=extend_schema(
-        tags=['mi-negocio'],
-        description='Gestionar mi negocio',
-        methods=['GET', 'PUT', 'PATCH', 'DELETE'],
-        request=InfoNegocioSerializer,
-        responses={
-            200: InfoNegocioSerializer,
-            404: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    ),
-    update_theme=extend_schema(
-        tags=['mi-negocio'],
-        description='Actualizar el tema de mi negocio',
-        request=TiendaTemaSerializer,
-        responses={
-            200: TiendaTemaSerializer,
-            404: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        }
-    )
-)
 class AdminNegocioViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     
@@ -62,36 +17,8 @@ class AdminNegocioViewSet(viewsets.ViewSet):
         except NegocioUser.DoesNotExist:
             return None
 
-    @extend_schema(
-        tags=['mi-negocio'],
-        description='Crear un nuevo negocio para el usuario autenticado',
-        request=InfoNegocioSerializer,
-        responses={
-            201: InfoNegocioSerializer,
-            400: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        },
-        examples=[
-            OpenApiExample(
-                'Ejemplo de solicitud',
-                value={
-                    'nombre': 'Mi Tienda',
-                    'descripcion': 'Descripción de mi tienda',
-                    'telefono': '+53 55555555',
-                    'direccion': 'Dirección de mi tienda',
-                    'provincia': 'La Habana',
-                    'municipio': 'Plaza',
-                }
-            )
-        ]
-    )
     @action(detail=False, methods=['post'])
     def create_business(self, request):
-        """Crear un nuevo negocio para el usuario autenticado"""
         if self.get_negocio(request.user):
             return Response(
                 {'error': 'Ya tienes un negocio asociado'}, 
@@ -111,34 +38,8 @@ class AdminNegocioViewSet(viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @extend_schema(
-        tags=['mi-negocio'],
-        description='Gestionar información del negocio del usuario autenticado',
-        methods=['GET', 'PUT', 'PATCH', 'DELETE'],
-        request=InfoNegocioSerializer,
-        responses={
-            200: InfoNegocioSerializer,
-            404: {
-                'type': 'object',
-                'properties': {
-                    'error': {'type': 'string'}
-                }
-            }
-        },
-        examples=[
-            OpenApiExample(
-                'Ejemplo de actualización',
-                value={
-                    'nombre': 'Nuevo nombre de tienda',
-                    'descripcion': 'Nueva descripción',
-                    'telefono': '+53 55555555',
-                }
-            )
-        ]
-    )
     @action(detail=False, methods=['get', 'put', 'patch', 'delete'])
     def my_business(self, request):
-        """Gestionar información del negocio del usuario autenticado"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -171,7 +72,6 @@ class AdminNegocioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['put'])
     def update_theme(self, request):
-        """Actualizar el tema del negocio del usuario autenticado"""
         negocio = self.get_negocio(request.user)
         if not negocio:
             return Response(
@@ -192,7 +92,6 @@ class AdminNegocioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def get_resumen(self, request):
-        """Obtener resumen de los recursos del usuario"""
         try:
             # Obtener el negocio del usuario
             negocio_user = NegocioUser.objects.filter(user=request.user).first()

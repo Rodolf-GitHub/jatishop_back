@@ -201,12 +201,4 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'API para el sistema de comercio electrónico E-ComCuba',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
-    'COMPONENT_SPLIT_REQUEST': True,
-    'TAGS': [
-        {'name': 'marketplace', 'description': 'Operaciones del marketplace general'},
-        {'name': 'tiendas', 'description': 'Operaciones relacionadas con tiendas'},
-        {'name': 'categorias', 'description': 'Operaciones de categorías y subcategorías'},
-        {'name': 'mi-negocio', 'description': 'Operaciones para gestionar tu propio negocio'},
-        {'name': 'auth', 'description': 'Operaciones de autenticación'},
-    ],
 }

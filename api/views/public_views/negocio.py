@@ -8,33 +8,6 @@ from ...serializers.info_negocio_serializers import InfoNegocioSerializer, Negoc
 from ...utils.permissions import IsNegocioOwnerOrReadOnly
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
-@extend_schema_view(
-    list=extend_schema(
-        tags=['tiendas'],
-        description='Listar todas las tiendas',
-        parameters=[
-            {'name': 'provincia', 'type': str, 'description': 'Filtrar por provincia'},
-            {'name': 'municipio', 'type': str, 'description': 'Filtrar por municipio'},
-            {'name': 'search', 'type': str, 'description': 'Buscar por nombre o descripción'},
-        ]
-    ),
-    retrieve=extend_schema(
-        tags=['tiendas'],
-        description='Obtener detalles de una tienda específica'
-    ),
-    create=extend_schema(
-        tags=['tiendas'],
-        description='Crear una nueva tienda'
-    ),
-    update=extend_schema(
-        tags=['tiendas'],
-        description='Actualizar una tienda existente'
-    ),
-    destroy=extend_schema(
-        tags=['tiendas'],
-        description='Eliminar una tienda'
-    )
-)
 class InfoNegocioViewSet(viewsets.ModelViewSet):
     serializer_class = InfoNegocioSerializer
     lookup_field = 'slug'

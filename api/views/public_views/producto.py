@@ -23,11 +23,7 @@ class ProductoViewSet(BaseNegocioViewSet):
 
     def perform_create(self, serializer):
         negocio = self.get_negocio()
-        # La validación de permisos ya la hace IsNegocioOwnerOrReadOnly
         serializer.save()
-
-    # Los métodos perform_update y perform_destroy ya no necesitan 
-    # validación adicional porque la hace IsNegocioOwnerOrReadOnly
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'por_subcategoria', 'por_categoria']:
@@ -39,7 +35,6 @@ class ProductoViewSet(BaseNegocioViewSet):
     @action(detail=False, methods=['get'], url_path='categoria')
     def por_categoria(self, request, *args, **kwargs):
         try:
-            # Obtener y validar categoria_id
             categoria_id = request.query_params.get('categoria_id')
             if not categoria_id:
                 return Response(
@@ -47,10 +42,8 @@ class ProductoViewSet(BaseNegocioViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Verificar que la categoría existe
             categoria = get_object_or_404(Categoria, id=categoria_id)
             
-            # Obtener productos
             productos = Producto.objects.filter(
                 subcategoria__categoria=categoria,
                 activo=True
@@ -59,7 +52,6 @@ class ProductoViewSet(BaseNegocioViewSet):
                 'subcategoria__categoria'
             )
             
-            # Serializar y retornar
             serializer = ProductoSerializer(productos, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
             
@@ -78,7 +70,6 @@ class ProductoViewSet(BaseNegocioViewSet):
     @action(detail=False, methods=['get'], url_path='subcategoria')
     def por_subcategoria(self, request, *args, **kwargs):
         try:
-            # Obtener y validar subcategoria_id
             subcategoria_id = request.query_params.get('subcategoria_id')
             if not subcategoria_id:
                 return Response(
@@ -86,10 +77,8 @@ class ProductoViewSet(BaseNegocioViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Verificar que la subcategoría existe
             subcategoria = get_object_or_404(Subcategoria, id=subcategoria_id)
             
-            # Obtener productos
             productos = Producto.objects.filter(
                 subcategoria=subcategoria,
                 activo=True
@@ -98,7 +87,6 @@ class ProductoViewSet(BaseNegocioViewSet):
                 'subcategoria__categoria'
             )
             
-            # Serializar y retornar
             serializer = ProductoSerializer(productos, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
             

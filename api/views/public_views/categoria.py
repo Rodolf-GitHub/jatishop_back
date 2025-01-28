@@ -19,10 +19,6 @@ from rest_framework import viewsets
 
 logger = logging.getLogger(__name__)
 
-@extend_schema_view(
-    list=extend_schema(tags=['categorias'], description='Listar categorías'),
-    retrieve=extend_schema(tags=['categorias'], description='Obtener detalles de una categoría')
-)
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     serializer_class = CategoriaSerializer
@@ -101,10 +97,6 @@ class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-@extend_schema_view(
-    list=extend_schema(tags=['categorias'], description='Listar subcategorías'),
-    retrieve=extend_schema(tags=['categorias'], description='Obtener detalles de una subcategoría')
-)
 class SubcategoriaViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     serializer_class = SubcategoriaSerializer

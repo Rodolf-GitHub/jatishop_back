@@ -9,23 +9,6 @@ class ProductoPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
-@extend_schema_view(
-    list=extend_schema(
-        tags=['marketplace'],
-        description='Listar todos los productos del marketplace',
-        parameters=[
-            {'name': 'provincia', 'type': str, 'description': 'Filtrar por provincia'},
-            {'name': 'municipio', 'type': str, 'description': 'Filtrar por municipio'},
-            {'name': 'categoria', 'type': int, 'description': 'Filtrar por categoría'},
-            {'name': 'subcategoria', 'type': int, 'description': 'Filtrar por subcategoría'},
-            {'name': 'search', 'type': str, 'description': 'Buscar por nombre de producto'},
-        ]
-    ),
-    retrieve=extend_schema(
-        tags=['marketplace'],
-        description='Obtener detalles de un producto específico'
-    )
-)
 class MarketplaceProductoViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductoSerializer
     pagination_class = ProductoPagination
