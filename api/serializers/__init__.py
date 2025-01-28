@@ -5,3 +5,4 @@ from .categoria_serializers import *
 from .subcategoria_serializers import *
 from .producto_serializers import *
 from .user_auth_serializers import *
+from .pedido_serializers import *
