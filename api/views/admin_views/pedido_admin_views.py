@@ -3,15 +3,19 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
-from ...models import Pedido, NegocioUser
-from ...serializers import PedidoSerializer, PedidoDetalleSerializer
+from django.db.models import Q
+from ...models import Pedido, NegocioUser, PedidoProducto
+from ...serializers.admin_serializers.pedido_admin_serilizers import (
+    PedidoAdminSerializer, 
+    
+)
 
 @extend_schema_view(
     list=extend_schema(
         tags=['pedidos-admin'],
         description='Listar pedidos del negocio',
         responses={
-            200: PedidoDetalleSerializer(many=True),
+            200: PedidoAdminSerializer(many=True),
             404: {
                 'type': 'object',
                 'properties': {
@@ -23,9 +27,9 @@ from ...serializers import PedidoSerializer, PedidoDetalleSerializer
     create=extend_schema(
         tags=['pedidos-admin'],
         description='Crear un nuevo pedido',
-        request=PedidoSerializer,
+        request=PedidoAdminSerializer,
         responses={
-            201: PedidoSerializer,
+            201: PedidoAdminSerializer,
             400: {
                 'type': 'object',
                 'properties': {
@@ -38,7 +42,7 @@ from ...serializers import PedidoSerializer, PedidoDetalleSerializer
         tags=['pedidos-admin'],
         description='Obtener detalle de un pedido',
         responses={
-            200: PedidoDetalleSerializer,
+            200: PedidoAdminSerializer,
             404: {
                 'type': 'object',
                 'properties': {
@@ -60,7 +64,7 @@ from ...serializers import PedidoSerializer, PedidoDetalleSerializer
             }
         },
         responses={
-            200: PedidoDetalleSerializer,
+            200: PedidoAdminSerializer,
             400: {
                 'type': 'object',
                 'properties': {
@@ -82,8 +86,8 @@ class AdminPedidoViewSet(viewsets.ModelViewSet):
     """
     ViewSet para que los administradores gestionen los pedidos de su negocio
     """
-    serializer_class = PedidoSerializer
     permission_classes = [IsAuthenticated]
+    serializer_class = PedidoAdminSerializer
     
     def get_negocio(self, user):
         try:
@@ -96,13 +100,15 @@ class AdminPedidoViewSet(viewsets.ModelViewSet):
         negocio = self.get_negocio(self.request.user)
         if not negocio:
             return Pedido.objects.none()
-        return Pedido.objects.filter(negocio=negocio)
+        
+        # Obtener pedidos que contengan productos de categorías del negocio
+        return Pedido.objects.filter(
+            items__producto__subcategoria__categoria__negocio=negocio
+        ).prefetch_related(
+            'items',
+            'items__producto'
+        ).distinct().order_by('-fecha_pedido')
     
-    def get_serializer_class(self):
-        if self.action in ['retrieve', 'list']:
-            return PedidoDetalleSerializer
-        return PedidoSerializer
-
     @action(detail=True, methods=['patch'])
     def actualizar_estado(self, request, pk=None):
         pedido = self.get_object()

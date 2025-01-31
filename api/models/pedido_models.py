@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 from .producto_models import Producto
 from .negocio_models import InfoNegocio
@@ -34,7 +35,7 @@ class Pedido(models.Model):
     productos = models.ManyToManyField(
         Producto,
         through='PedidoProducto',
-        related_name='pedidos'
+        related_name='pedidos',
     )
     fecha_pedido = models.DateTimeField(auto_now_add=True)
     estado = models.CharField(
@@ -64,7 +65,28 @@ class Pedido(models.Model):
     def __str__(self):
         return f"Pedido #{self.id} - {self.nombre_cliente}"
 
+    def clean(self):
+        """Validar que el pedido tenga al menos un producto"""
+        super().clean()
+        # Verificar si es un nuevo pedido (sin ID)
+        if not self.pk:
+            return
+        
+        # Verificar si tiene productos
+        if not self.items.exists():
+            raise ValidationError({
+                'productos': 'El pedido debe tener al menos un producto.'
+            })
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
     def calcular_total(self):
+        """Calcular el total del pedido"""
+        if not self.items.exists():
+            raise ValidationError('No se puede calcular el total sin productos')
+            
         total = sum(
             item.cantidad * item.precio_unitario 
             for item in self.items.all()
@@ -102,7 +124,20 @@ class PedidoProducto(models.Model):
     def __str__(self):
         return f"{self.cantidad}x {self.producto.nombre} en Pedido #{self.pedido.id}"
 
+    def clean(self):
+        """Validar cantidad y precio"""
+        super().clean()
+        if self.cantidad < 1:
+            raise ValidationError({
+                'cantidad': 'La cantidad debe ser mayor a 0.'
+            })
+        if self.precio_unitario <= 0:
+            raise ValidationError({
+                'precio_unitario': 'El precio debe ser mayor a 0.'
+            })
+
     def save(self, *args, **kwargs):
+        self.clean()
         # Guardar el precio actual del producto
         if not self.precio_unitario:
             self.precio_unitario = self.producto.precio_con_descuento

@@ -1,0 +1,1 @@
+from .pedido_admin_serilizers import *

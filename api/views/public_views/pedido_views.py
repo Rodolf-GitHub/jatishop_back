@@ -58,90 +58,33 @@ from decimal import Decimal
 )
 class PedidoViewSet(viewsets.ModelViewSet):
     """
-    ViewSet público para consultar pedidos por teléfono
+    ViewSet público para gestionar pedidos
     """
     serializer_class = PedidoSerializer
     permission_classes = [AllowAny]
     
     def get_queryset(self):
+        # Para consultas públicas, solo permitimos buscar por teléfono
+        telefono = self.request.query_params.get('telefono')
+        if telefono:
+            return Pedido.objects.filter(telefono_cliente=telefono)
         return Pedido.objects.none()
     
     def create(self, request):
-        # Validar datos básicos del pedido
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        # Validar productos
-        productos_data = request.data.get('productos', [])
-        if not productos_data:
-            return Response(
-                {'error': 'Debe incluir al menos un producto'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
         try:
-            # Crear pedido
             pedido = serializer.save()
-            total_pedido = Decimal('0.00')
-            
-            # Procesar cada producto
-            for item in productos_data:
-                producto_id = item.get('producto_id')
-                cantidad = item.get('cantidad', 1)
-                
-                try:
-                    producto = Producto.objects.get(id=producto_id, activo=True)
-                except Producto.DoesNotExist:
-                    pedido.delete()
-                    return Response(
-                        {'error': f'Producto {producto_id} no encontrado o no disponible'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-                
-                # Validar stock
-                if producto.stock < cantidad:
-                    pedido.delete()
-                    return Response(
-                        {'error': f'Stock insuficiente para el producto {producto.nombre}'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                # Calcular precio con descuento si existe
-                precio_unitario = producto.precio_con_descuento
-                
-                # Crear relación pedido-producto
-                PedidoProducto.objects.create(
-                    pedido=pedido,
-                    producto=producto,
-                    cantidad=cantidad,
-                    precio_unitario=precio_unitario
-                )
-                
-                # Actualizar stock
-                producto.stock -= cantidad
-                producto.save()
-                
-                # Actualizar total
-                total_pedido += precio_unitario * Decimal(str(cantidad))
-            
-            # Actualizar total del pedido
-            pedido.total = total_pedido
-            pedido.save()
-            
-            # Retornar detalles del pedido
             return Response(
                 PedidoDetalleSerializer(pedido).data,
                 status=status.HTTP_201_CREATED
             )
-            
         except Exception as e:
-            # Si algo falla, eliminar el pedido
-            if 'pedido' in locals():
-                pedido.delete()
             return Response(
                 {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_400_BAD_REQUEST
             )
 
     @action(detail=False, methods=['get'])
