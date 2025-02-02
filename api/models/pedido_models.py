@@ -9,7 +9,6 @@ class Pedido(models.Model):
         ('pendiente', 'Pendiente'),
         ('confirmado', 'Confirmado'),
         ('en_proceso', 'En Proceso'),
-        ('enviado', 'Enviado'),
         ('entregado', 'Entregado'),
         ('cancelado', 'Cancelado')
     ]
