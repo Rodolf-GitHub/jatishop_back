@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from ...models import Pedido, PedidoProducto, Producto
 from decimal import Decimal
+from django.db import transaction
 
 class PedidoProductoAdminSerializer(serializers.ModelSerializer):
     producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
@@ -11,17 +12,21 @@ class PedidoProductoAdminSerializer(serializers.ModelSerializer):
             'id', 'producto_id', 'producto_nombre', 
             'cantidad', 'precio_unitario', 'subtotal'
         ]
-        read_only_fields = ['precio_unitario', 'subtotal']
 
 class PedidoAdminSerializer(serializers.ModelSerializer):
     items = PedidoProductoAdminSerializer(many=True, read_only=True)
+    productos = serializers.ListField(
+        child=serializers.DictField(),
+        write_only=True,
+        required=True
+    )
     
     class Meta:
         model = Pedido
         fields = [
             'id', 'nombre_cliente', 'email_cliente', 'telefono_cliente',
             'direccion_entrega', 'nota_comprador', 'total', 'estado',
-            'fecha_pedido', 'metodo_pago', 'items'
+            'fecha_pedido', 'metodo_pago', 'items', 'productos'
         ]
         read_only_fields = ['total', 'fecha_pedido']
 
@@ -29,67 +34,72 @@ class PedidoAdminSerializer(serializers.ModelSerializer):
         if not productos:
             raise serializers.ValidationError("Debe incluir al menos un producto")
         
-        negocio = self.context.get('negocio')
-        if not negocio:
-            raise serializers.ValidationError("Negocio no encontrado")
-        
         for item in productos:
-            producto_id = item.get('producto_id')
+            if not isinstance(item.get('producto_id'), int):
+                raise serializers.ValidationError("producto_id debe ser un número entero")
+            if not isinstance(item.get('cantidad', 1), int):
+                raise serializers.ValidationError("cantidad debe ser un número entero")
+            
             try:
                 producto = Producto.objects.get(
-                    id=producto_id,
-                    subcategoria__categoria__negocio=negocio
+                    id=item['producto_id'],
+                    activo=True
                 )
+                if producto.stock < item.get('cantidad', 1):
+                    raise serializers.ValidationError(
+                        f"Stock insuficiente para {producto.nombre}. Disponible: {producto.stock}"
+                    )
             except Producto.DoesNotExist:
                 raise serializers.ValidationError(
-                    f"El producto {producto_id} no pertenece a tu negocio"
+                    f"El producto con ID {item['producto_id']} no existe"
                 )
         
         return productos
 
     def create(self, validated_data):
-        productos_data = validated_data.pop('productos', [])
-        pedido = Pedido.objects.create(**validated_data)
+        productos_data = validated_data.pop('productos')
         total_pedido = Decimal('0')
 
-        try:
-            for item in productos_data:
-                producto_id = item.get('producto_id')
-                cantidad = item.get('cantidad', 1)
+        with transaction.atomic():
+            # Crear el pedido
+            pedido = Pedido.objects.create(**validated_data)
 
-                producto = Producto.objects.select_for_update().get(
-                    id=producto_id,
-                    subcategoria__categoria__negocio=self.context['negocio']
-                )
+            try:
+                for item in productos_data:
+                    producto_id = item['producto_id']
+                    cantidad = item.get('cantidad', 1)
 
-                # Validar stock
-                if producto.stock < cantidad:
-                    raise serializers.ValidationError(
-                        f"Stock insuficiente para {producto.nombre}"
+                    # Obtener el producto con bloqueo
+                    producto = Producto.objects.select_for_update().get(id=producto_id)
+
+                    # Validar stock nuevamente dentro de la transacción
+                    if producto.stock < cantidad:
+                        raise serializers.ValidationError(
+                            f"Stock insuficiente para {producto.nombre}"
+                        )
+
+                    # Crear relación pedido-producto
+                    precio_unitario = producto.precio_con_descuento
+                    PedidoProducto.objects.create(
+                        pedido=pedido,
+                        producto=producto,
+                        cantidad=cantidad,
+                        precio_unitario=precio_unitario
                     )
 
-                # Crear relación pedido-producto
-                precio_unitario = producto.precio_con_descuento
-                PedidoProducto.objects.create(
-                    pedido=pedido,
-                    producto=producto,
-                    cantidad=cantidad,
-                    precio_unitario=precio_unitario
-                )
+                    # Actualizar stock
+                    producto.stock -= cantidad
+                    producto.save()
 
-                # Actualizar stock
-                producto.stock -= cantidad
-                producto.save()
+                    # Actualizar total
+                    total_pedido += precio_unitario * Decimal(str(cantidad))
 
-                # Actualizar total
-                total_pedido += precio_unitario * Decimal(str(cantidad))
+                # Guardar el total del pedido
+                pedido.total = total_pedido
+                pedido.save()
 
-            pedido.total = total_pedido
-            pedido.save()
+                return pedido
 
-            return pedido
-
-        except Exception as e:
-            if 'pedido' in locals():
-                pedido.delete()
-            raise serializers.ValidationError(str(e))
+            except Exception as e:
+                # La transacción se revertirá automáticamente si hay un error
+                raise serializers.ValidationError(str(e))
