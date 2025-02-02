@@ -135,7 +135,7 @@ class AdminPedidoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         negocio = self.get_negocio(self.request.user)
         if not negocio:
-            raise serializers.ValidationError(
+            raise serializer.ValidationError(
                 "No tienes un negocio asociado"
             )
         serializer.save(negocio=negocio)
