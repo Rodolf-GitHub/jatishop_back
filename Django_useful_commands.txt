@@ -1,0 +1,31 @@
+# Entorno Virtual
+venv\Scripts\activate  # Windows
+source venvaju/Scripts/activate  # Git Bash
+
+# Instalación de dependencias
+pip install -r requirements.txt
+
+# Django comandos básicos
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+python manage.py qcluster
+
+# Otros comandos útiles
+pip freeze > requirements.txt  # Guardar dependencias actuales
+python manage.py shell  # Abrir shell de Django
+python manage.py collectstatic  # Recolectar archivos estáticos
+python manage.py showmigrations  # Ver estado de migraciones
+python manage.py dumpdata > backup.json  # Crear backup de la base de datos
+python manage.py loaddata backup.json  # Restaurar backup de la base de datos
+
+# Limpiar caché y archivos compilados
+find . -type f -name "*.pyc" -delete
+find . -type d -name "__pycache__" -delete
+
+# Git comandos básicos
+git add .
+git commit -m "mensaje"
+git push
+git pull 
