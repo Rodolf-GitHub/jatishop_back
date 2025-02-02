@@ -209,5 +209,9 @@ SPECTACULAR_SETTINGS = {
         {'name': 'categorias', 'description': 'Operaciones de categorías y subcategorías'},
         {'name': 'mi-negocio', 'description': 'Operaciones para gestionar tu propio negocio'},
         {'name': 'auth', 'description': 'Operaciones de autenticación'},
+        {'name': 'pedidos-public', 'description': 'Operaciones con pedidos'},
+        {'name': 'pedidos-admin', 'description': 'Operaciones con pedidos '},
+
+
     ],
 }

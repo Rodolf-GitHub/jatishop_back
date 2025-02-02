@@ -3,13 +3,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
-from ...models import Pedido, Producto, PedidoProducto
+from ...models import Pedido
 from ...serializers import PedidoSerializer, PedidoDetalleSerializer
 from decimal import Decimal
 
 @extend_schema_view(
     consultar=extend_schema(
-        tags=['pedidos'],
+        tags=['pedidos-public'],
         description='Consultar pedidos por número de teléfono',
         parameters=[
             OpenApiParameter(
@@ -36,14 +36,14 @@ from decimal import Decimal
         }
     ),
     list=extend_schema(
-        tags=['pedidos'],
+        tags=['pedidos-public'],
         description='Listar pedidos (requiere teléfono)',
         responses={
             200: PedidoSerializer(many=True)
         }
     ),
     retrieve=extend_schema(
-        tags=['pedidos'],
+        tags=['pedidos-public'],
         description='Obtener detalle de un pedido',
         responses={
             200: PedidoDetalleSerializer,

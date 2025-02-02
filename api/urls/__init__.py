@@ -3,7 +3,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
-from .public_urls import marketplace_urls, tienda_urls, auth_urls
+from .public_urls import marketplace_urls, tienda_urls, auth_urls,pedido_urls
 from .admin_urls import *
 from .admin_urls.admin_negocio import *
 from .admin_urls.admin_categorias import *
@@ -42,6 +42,7 @@ urlpatterns = [
     # URLs públicas
     path('', include(marketplace_urls)),
     path('', include(tienda_urls)),
+    path('', include(pedido_urls)),
     path('auth/', include(auth_urls)),
 
     # URLs de administración
