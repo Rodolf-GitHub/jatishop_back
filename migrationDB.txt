@@ -1,3 +1,4 @@
 #Comandos para migrar DB:
 - python manage.py dumpdata --exclude auth.permission --exclude contenttypes > data.json
+# Cuidado con este 
 - python manage.py loaddata data.json
