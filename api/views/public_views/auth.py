@@ -99,7 +99,15 @@ def logout(request):
 class UserAuthViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserAuthSerializer
-    permission_classes = [permissions.AllowAny]  # Permitir acceso a cualquier usuario
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = [permissions.AllowAny]
+        elif self.action in ['me', 'change_password']:
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            permission_classes = [permissions.IsAdminUser]
+        return [permission() for permission in permission_classes]
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def me(self, request):
@@ -186,11 +194,4 @@ class UserAuthViewSet(viewsets.ModelViewSet):
             logger.error(f"Error en registro de usuario: {str(e)}")
             return Response({
                 'error': str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-    def get_permissions(self):
-        if self.action == 'create':
-            permission_classes = [permissions.AllowAny]  # Permitir acceso a cualquier usuario
-        else:
-            permission_classes = [permissions.IsAdminUser]
-        return [permission() for permission in permission_classes] 
+            }, status=status.HTTP_400_BAD_REQUEST) 
