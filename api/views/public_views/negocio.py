@@ -7,6 +7,7 @@ from ...models.negocio_models import InfoNegocio, NegocioUser
 from ...serializers.info_negocio_serializers import InfoNegocioSerializer, NegocioDetalleSerializer
 from ...utils.permissions import IsNegocioOwnerOrReadOnly
 from drf_spectacular.utils import extend_schema, extend_schema_view
+from ...utils.pagination import NegocioPagination
 
 @extend_schema_view(
     list=extend_schema(
@@ -38,6 +39,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 class InfoNegocioViewSet(viewsets.ModelViewSet):
     serializer_class = InfoNegocioSerializer
     lookup_field = 'slug'
+    pagination_class = NegocioPagination
     
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:

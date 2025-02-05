@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -88,10 +88,16 @@ class AdminPedidoViewSet(viewsets.ModelViewSet):
     """
     permission_classes = [IsAuthenticated]
     serializer_class = PedidoAdminSerializer
+
+    # def get_permissions(self):
+    #     if self.action == 'create':
+    #         return [permissions.AllowAny()]  # Permitir acceso a todos para crear
+    #     return super().get_permissions()  # Usar permisos por defecto para otras acciones
+
     
     def get_negocio(self, user):
         try:
-            negocio_user = NegocioUser.objects.get(user=user)
+            negocio_user = NegocioUser.objects.get(user=user) 
             return negocio_user.negocio
         except NegocioUser.DoesNotExist:
             return None
@@ -134,6 +140,7 @@ class AdminPedidoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         negocio = self.get_negocio(self.request.user)
+        permission_classes = [permissions.AllowAny]
         if not negocio:
             raise serializer.ValidationError(
                 "No tienes un negocio asociado"
