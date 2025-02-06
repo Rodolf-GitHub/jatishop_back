@@ -70,7 +70,7 @@ class LicenciaEstadoView(APIView):
             # Preparar la respuesta
             data = {
                 'esta_activa': licencia.esta_activa,
-                'dias_restantes': licencia.dias_restantes(),
+                'dias_restantes': licencia.dias_restantes,
                 'fecha_vencimiento': licencia.fecha_vencimiento,
                 'negocio_activo': negocio.activo
             }

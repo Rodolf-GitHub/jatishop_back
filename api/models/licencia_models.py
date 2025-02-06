@@ -41,14 +41,15 @@ class Licencia(models.Model):
 
         # Si es la primera vez que se paga la licencia
         if not self.primera_licencia_pagada and self.esta_activa:
-            usuario = self.negocio.usuario
-            if hasattr(usuario, 'billetera') and usuario.billetera.referido_por:
-                try:
+            try:
+                # Obtener el primer usuario del negocio
+                negocio_user = self.negocio.usuarios.first()
+                if negocio_user and hasattr(negocio_user.user, 'billetera') and negocio_user.user.billetera.referido_por:
                     # Importar aquí para evitar importación circular
                     from ..models import TransaccionBilletera
                     
                     # Añadir $2 a la billetera del referidor
-                    referidor_billetera = usuario.billetera.referido_por.billetera
+                    referidor_billetera = negocio_user.user.billetera.referido_por.billetera
                     TransaccionBilletera.objects.create(
                         billetera=referidor_billetera,
                         monto=Decimal('2.00'),
@@ -59,8 +60,8 @@ class Licencia(models.Model):
                     # Marcar como pagada para que no se vuelva a pagar
                     self.primera_licencia_pagada = True
                     self.save()
-                except Exception as e:
-                    print(f"Error al procesar comisión de referido: {str(e)}")
+            except Exception as e:
+                print(f"Error al procesar comisión de referido: {str(e)}")
 
     @property
     def dias_restantes(self):
