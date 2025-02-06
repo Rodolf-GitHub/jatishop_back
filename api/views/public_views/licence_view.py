@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from ...models import Licencia, InfoNegocio
+from ...models import Licencia, InfoNegocio, NegocioUser
 from ...serializers import LicenciaSerializer
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
@@ -55,8 +55,11 @@ class LicenciaEstadoView(APIView):
     )
     def get(self, request):
         try:
+            # Obtener el usuario del negocio
+            negocio_user = NegocioUser.objects.get(user=request.user)
+            
             # Obtener el negocio asociado al usuario
-            negocio = InfoNegocio.objects.get(usuario=request.user)
+            negocio = InfoNegocio.objects.get(usuarios=negocio_user)
             
             # Obtener la licencia del negocio
             licencia = Licencia.objects.get(negocio=negocio)
@@ -74,6 +77,11 @@ class LicenciaEstadoView(APIView):
             
             return Response(data, status=status.HTTP_200_OK)
             
+        except NegocioUser.DoesNotExist:
+            return Response(
+                {'error': 'No se encontró el usuario en el sistema'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         except InfoNegocio.DoesNotExist:
             return Response(
                 {'error': 'No se encontró un negocio asociado a este usuario'},
