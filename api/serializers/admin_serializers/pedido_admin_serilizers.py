@@ -44,7 +44,6 @@ class PedidoAdminSerializer(serializers.ModelSerializer):
             try:
                 producto = Producto.objects.get(
                     id=item['producto_id'],
-                    negocio=self.context['request'].user.negocio,
                     activo=True
                 )
                 if producto.stock < item.get('cantidad', 1):
@@ -53,7 +52,7 @@ class PedidoAdminSerializer(serializers.ModelSerializer):
                     )
             except Producto.DoesNotExist:
                 raise serializers.ValidationError(
-                    f"El producto con ID {item['producto_id']} no existe o no pertenece a su negocio"
+                    f"El producto con ID {item['producto_id']} no existe o no está disponible"
                 )
         
         return productos
@@ -74,7 +73,7 @@ class PedidoAdminSerializer(serializers.ModelSerializer):
                     # Obtener el producto con bloqueo
                     producto = Producto.objects.select_for_update().get(
                         id=producto_id,
-                        negocio=self.context['request'].user.negocio
+                        activo=True
                     )
 
                     # Validar stock nuevamente dentro de la transacción
