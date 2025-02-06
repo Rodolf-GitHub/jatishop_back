@@ -24,6 +24,17 @@ class Licencia(models.Model):
     def __str__(self):
         return f"Licencia de {self.negocio.nombre}"
 
+    def verificar_estado(self):
+        """Verifica y actualiza el estado de la licencia basado en la fecha de vencimiento"""
+        ahora = timezone.now()
+        if self.fecha_vencimiento < ahora and self.esta_activa:
+            self.esta_activa = False
+            self.save()
+        elif self.fecha_vencimiento > ahora and not self.esta_activa:
+            self.esta_activa = True
+            self.save()
+        return self.esta_activa
+
     def save(self, *args, **kwargs):
         is_new = not self.pk
         super().save(*args, **kwargs)
