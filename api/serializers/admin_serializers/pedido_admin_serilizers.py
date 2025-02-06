@@ -9,9 +9,10 @@ class PedidoProductoAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = PedidoProducto
         fields = [
-            'id', 'producto_id', 'producto_nombre', 
+            'id', 'producto', 'producto_nombre', 
             'cantidad', 'precio_unitario', 'subtotal'
         ]
+        read_only_fields = ['subtotal']
 
 class PedidoAdminSerializer(serializers.ModelSerializer):
     items = PedidoProductoAdminSerializer(many=True, read_only=True)
@@ -24,7 +25,7 @@ class PedidoAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pedido
         fields = [
-            'id', 'nombre_cliente', 'email_cliente', 'telefono_cliente',
+            'id', 'nombre_cliente', 'email_cliente',
             'direccion_entrega', 'nota_comprador', 'total', 'estado',
             'fecha_pedido', 'metodo_pago', 'items', 'productos'
         ]
@@ -43,6 +44,7 @@ class PedidoAdminSerializer(serializers.ModelSerializer):
             try:
                 producto = Producto.objects.get(
                     id=item['producto_id'],
+                    negocio=self.context['request'].user.negocio,
                     activo=True
                 )
                 if producto.stock < item.get('cantidad', 1):
@@ -51,7 +53,7 @@ class PedidoAdminSerializer(serializers.ModelSerializer):
                     )
             except Producto.DoesNotExist:
                 raise serializers.ValidationError(
-                    f"El producto con ID {item['producto_id']} no existe"
+                    f"El producto con ID {item['producto_id']} no existe o no pertenece a su negocio"
                 )
         
         return productos
@@ -70,7 +72,10 @@ class PedidoAdminSerializer(serializers.ModelSerializer):
                     cantidad = item.get('cantidad', 1)
 
                     # Obtener el producto con bloqueo
-                    producto = Producto.objects.select_for_update().get(id=producto_id)
+                    producto = Producto.objects.select_for_update().get(
+                        id=producto_id,
+                        negocio=self.context['request'].user.negocio
+                    )
 
                     # Validar stock nuevamente dentro de la transacción
                     if producto.stock < cantidad:
@@ -101,5 +106,9 @@ class PedidoAdminSerializer(serializers.ModelSerializer):
                 return pedido
 
             except Exception as e:
-                # La transacción se revertirá automáticamente si hay un error
                 raise serializers.ValidationError(str(e))
+
+    def to_representation(self, instance):
+        # Usar el serializador detallado para la respuesta
+        from .pedido_detalle_admin_serializers import PedidoDetalleAdminSerializer
+        return PedidoDetalleAdminSerializer(instance, context=self.context).data
