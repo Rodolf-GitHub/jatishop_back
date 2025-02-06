@@ -18,7 +18,8 @@ scheduler = None
 def verificar_sistema_licencias():
     """Función que ejecuta todas las verificaciones del sistema de licencias"""
     try:
-        print(colored("\nEjecutando verificación de licencias:", 'cyan', attrs=['bold']))
+        fecha_actual = timezone.localtime().strftime("%d/%m/%Y %H:%M:%S")
+        print(colored(f"\nEjecutando verificación de licencias: {fecha_actual}", 'cyan', attrs=['bold']))
 
         # Verificar licencias
         licencias = Licencia.objects.all()
