@@ -4,6 +4,7 @@
 /jatishop_back.zip
 /venvjati
 .env
+*.json
 
 # Python
 *.py[cod]
