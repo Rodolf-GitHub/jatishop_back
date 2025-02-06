@@ -31,6 +31,22 @@ from decimal import Decimal
             )
         }
     ),
+    create=extend_schema(
+        tags=['pedidos'],
+        description='Crear un nuevo pedido',
+        responses={
+            201: PedidoDetalleSerializer,
+            400: OpenApiResponse(
+                description="Error en los datos del pedido",
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'error': {'type': 'string'}
+                    }
+                }
+            )
+        }
+    ),
     cancelar=extend_schema(
         tags=['pedidos'],
         description='Cancelar un pedido pendiente',
@@ -75,12 +91,19 @@ class PedidoViewSet(viewsets.ModelViewSet):
         return PedidoSerializer
 
     def create(self, request):
-        serializer = self.get_serializer(data=request.data)
+        # Asegurar que el email del pedido sea el del usuario autenticado
+        data = request.data.copy()
+        data['email_cliente'] = request.user.email
+        
+        serializer = self.get_serializer(data=data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # Guardar el pedido
             pedido = serializer.save()
+            
+            # Retornar el pedido creado con el serializer detallado
             return Response(
                 PedidoDetalleSerializer(pedido).data,
                 status=status.HTTP_201_CREATED
