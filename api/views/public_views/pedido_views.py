@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
 from ...models import Pedido
 from ...serializers import PedidoSerializer, PedidoDetalleSerializer
+from decimal import Decimal
 
 @extend_schema_view(
     list=extend_schema(
@@ -74,10 +75,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         return PedidoSerializer
 
     def create(self, request):
-        data = request.data.copy()
-        data['email_cliente'] = request.user.email
-        
-        serializer = self.get_serializer(data=data)
+        serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
