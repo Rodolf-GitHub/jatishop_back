@@ -31,7 +31,8 @@ class Producto(models.Model):
         upload_to=producto_imagen_path,
         blank=True, 
         null=True, 
-        default='default/default_producto.jfif'
+        default='default/default_producto.jfif',
+        max_length=500
     )
     subcategoria = models.ForeignKey(
         Subcategoria,

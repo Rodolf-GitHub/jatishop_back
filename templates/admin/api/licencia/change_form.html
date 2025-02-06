@@ -1,0 +1,111 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .license-banner {
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        text-align: center;
+        font-size: 1.1em;
+    }
+    .license-active {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    .license-expired {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    .custom-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .custom-buttons input[type="submit"] {
+        padding: 10px 20px;
+        border-radius: 5px;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .custom-buttons input[type="submit"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .btn-extend-1m { background-color: #28a745; }
+    .btn-extend-3m { background-color: #17a2b8; }
+    .btn-extend-6m { background-color: #ffc107; color: #000 !important; }
+    .btn-extend-1y { background-color: #dc3545; }
+    .btn-expire { 
+        background-color: #6c757d;
+        float: right;
+    }
+    .section-title {
+        font-size: 1.2em;
+        color: #495057;
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const confirmAction = (e, message) => {
+            if (!confirm(message)) {
+                e.preventDefault();
+            }
+        };
+
+        const buttons = {
+            '_extender_un_mes': '¿Está seguro que desea extender la licencia por 1 mes?',
+            '_extender_tres_meses': '¿Está seguro que desea extender la licencia por 3 meses?',
+            '_extender_seis_meses': '¿Está seguro que desea extender la licencia por 6 meses?',
+            '_extender_un_año': '¿Está seguro que desea extender la licencia por 1 año?',
+            '_vencer_licencia': '¿Está seguro que desea vencer esta licencia? El negocio quedará inactivo.',
+        };
+
+        Object.entries(buttons).forEach(([buttonName, message]) => {
+            const button = document.querySelector(`input[name="${buttonName}"]`);
+            if (button) {
+                button.addEventListener('click', (e) => confirmAction(e, message));
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+    {% if original %}
+        <div class="license-banner {% if original.esta_activa %}license-active{% else %}license-expired{% endif %}">
+            {% if original.esta_activa %}
+                Licencia Activa - Días restantes: {{ original.dias_restantes }}
+            {% else %}
+                Licencia Vencida - Hace {{ original.dias_restantes|default:"0" }} días
+            {% endif %}
+        </div>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+    <div class="custom-buttons">
+        <div class="section-title">Gestión de Licencia</div>
+        <input type="submit" value="Extender 1 mes" name="_extender_un_mes" class="btn-extend-1m">
+        <input type="submit" value="Extender 3 meses" name="_extender_tres_meses" class="btn-extend-3m">
+        <input type="submit" value="Extender 6 meses" name="_extender_seis_meses" class="btn-extend-6m">
+        <input type="submit" value="Extender 1 año" name="_extender_un_año" class="btn-extend-1y">
+        <input type="submit" value="Vencer Licencia" name="_vencer_licencia" class="btn-expire">
+    </div>
+    {{ block.super }}
+{% endblock %} 

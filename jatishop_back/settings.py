@@ -70,7 +70,7 @@ ROOT_URLCONF = 'jatishop_back.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -211,6 +211,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'auth', 'description': 'Operaciones de autenticación'},
         {'name': 'pedidos-public', 'description': 'Operaciones con pedidos'},
         {'name': 'pedidos-admin', 'description': 'Operaciones con pedidos '},
+        {'name': 'Licencias', 'description': 'Operaciones con licencias '},
 
 
     ],

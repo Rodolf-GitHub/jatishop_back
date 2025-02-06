@@ -1,0 +1,11 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block submit_buttons_bottom %}
+    <div class="submit-row">
+        {% for button in custom_buttons %}
+            <input type="submit" value="{{ button.text }}" name="_{{ button.action }}" class="{{ button.class }}">
+        {% endfor %}
+        {{ block.super }}
+    </div>
+{% endblock %} 
