@@ -19,6 +19,13 @@ python manage.py collectstatic  # Recolectar archivos estáticos
 python manage.py showmigrations  # Ver estado de migraciones
 python manage.py dumpdata > backup.json  # Crear backup de la base de datos
 python manage.py loaddata backup.json  # Restaurar backup de la base de datos
+python manage.py dumpdata \
+    --exclude auth.permission \
+    --exclude contenttypes \
+    --exclude admin.logentry \
+    --exclude sessions.session \
+    --exclude authtoken.token \
+    --indent 2 > backup_clean.json
 
 # Limpiar caché y archivos compilados
 find . -type f -name "*.pyc" -delete
